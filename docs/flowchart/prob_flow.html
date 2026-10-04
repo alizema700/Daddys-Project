@@ -1,0 +1,237 @@
+<title>prob Architecture Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one 16:9 keynote stage (recordable for the video), controls underneath. Single deliberate dark look, matching the prob site. */
+:root{
+  color-scheme: dark;
+  --bg:#060C17; --bg2:#0B1A2C; --glow:#0F4C5C;
+  --fg:#EEF3F8; --muted:#8C98AA; --faint:#56627A;
+  --card:rgba(255,255,255,.045); --card-hi:rgba(255,255,255,.075); --stroke:rgba(255,255,255,.10);
+  --accent:#2BC4D6; --accent-deep:#1A8FB0;
+  --ok:#3CCB8F; --no:#E5615F; --policy:#E3A93C; --human:#E3A93C;
+  --c-lead:#3D6FDB; --c-scout:#4D86E6; --c-plan:#16929F; --c-res:#2E9460; --c-ver:#22B3C9; --c-red:#D14C4C; --c-learn:#7C5DD8; --c-scribe:#5D6878; --c-sci:#C98A1E;
+  --sans:"Instrument Sans", -apple-system, "SF Pro Display", system-ui, sans-serif;
+  --serif:"Instrument Serif", "New York", Georgia, serif;
+  --mono:"JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+}
+html,body{background:var(--bg)}
+body{color:var(--fg);font-family:var(--sans);padding-inline:16px;padding-block:24px 40px;
+  background:radial-gradient(1200px 600px at 70% 10%, rgba(43,196,214,.10), transparent 60%),var(--bg)}
+.wrap{max-width:1280px;margin:0 auto;display:grid;gap:18px}
+.stage{overflow-x:auto;border-radius:22px;border:1px solid var(--stroke);
+  box-shadow:0 30px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06)}
+.stage svg{display:block;width:100%;min-width:900px;height:auto}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.bar p{margin:0;color:var(--muted);font-size:.9rem;max-width:62ch;line-height:1.5}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:500 .9rem var(--sans);color:var(--fg);background:var(--card-hi);border:1px solid var(--stroke);
+  border-radius:999px;padding:9px 16px;cursor:pointer}
+button.primary{background:linear-gradient(180deg,#36C8DA,#1C9CB8);color:#04121A;border-color:transparent;font-weight:600}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:fullscreen .stage, .stage:fullscreen{border-radius:0;border:0;background:var(--bg)}
+.stage:fullscreen svg{height:100vh;width:auto;margin:0 auto;min-width:0}
+/* SVG text */
+.t-eye{font:600 13px var(--mono);letter-spacing:.14em;fill:var(--accent);text-transform:uppercase}
+.t-h{font:700 44px var(--sans);letter-spacing:-.025em;fill:var(--fg)}
+.t-it{font:italic 400 50px var(--serif);fill:var(--accent)}
+.t-name{font:600 17px var(--sans);fill:var(--fg)}
+.t-role{font:400 12.5px var(--sans);fill:var(--muted)}
+.t-badge{font:700 12px var(--sans);fill:#fff}
+.t-edge{font:500 11px var(--mono);fill:var(--muted)}
+.t-kpi{font:700 30px var(--sans);fill:var(--fg);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.t-kpil{font:400 11.5px var(--sans);fill:var(--muted)}
+.t-band{font:600 11px var(--mono);letter-spacing:.12em;fill:var(--faint);text-transform:uppercase}
+.t-chip{font:500 11px var(--mono);fill:var(--fg)}
+.node rect.box{fill:var(--card);stroke:var(--stroke)}
+.node.lit rect.box{fill:var(--card-hi);stroke:var(--accent)}
+.edge{fill:none;stroke:rgba(255,255,255,.22);stroke-width:1.6}
+.edge.no{stroke:var(--no);stroke-opacity:.7;stroke-dasharray:5 5}
+.edge.sur{stroke:var(--policy);stroke-opacity:.8;stroke-dasharray:5 5}
+.edge.on{stroke:var(--accent);stroke-opacity:1}
+.pulse{fill:#BFF6FF;filter:url(#soft)}
+@media (prefers-reduced-motion: reduce){ .pulse{display:none} }
+</style>
+
+<div class="wrap">
+<div class="stage" id="stage">
+<svg id="flow" viewBox="0 0 1600 900" role="img" aria-labelledby="ttl dsc">
+<title id="ttl">prob technical architecture</title>
+<desc id="dsc">A research question goes to the lead agent, which dispatches planner and scout in parallel. The researcher runs the chosen experiment and submits a typed claim. Only the code verifier accepts; rejections return a reason, surprises reopen an assumption. Certified claims are attacked by the red team; the learner proposes follow-up questions back to the lead. A human approves publishing before the scribe writes the paper. Omnigent policies constrain every agent, and every step is logged in a hash-chained record exported to Databricks and re-checkable in the browser.</desc>
+<defs>
+  <radialGradient id="bgGlow" cx="68%" cy="34%" r="60%">
+    <stop offset="0" stop-color="#0F4C5C" stop-opacity=".55"/><stop offset="1" stop-color="#060C17" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="bgLin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0B1A2C"/><stop offset="1" stop-color="#060C17"/></linearGradient>
+  <linearGradient id="verG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#36C8DA" stop-opacity=".22"/><stop offset="1" stop-color="#1A8FB0" stop-opacity=".08"/></linearGradient>
+  <filter id="soft" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="3"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="halo" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="18"/></filter>
+  <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.6"/></marker>
+  <marker id="arwN" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9" fill="none" stroke="#E5615F" stroke-width="1.6"/></marker>
+  <marker id="arwS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9" fill="none" stroke="#E3A93C" stroke-width="1.6"/></marker>
+</defs>
+
+<rect width="1600" height="900" fill="url(#bgLin)"/>
+<rect width="1600" height="900" fill="url(#bgGlow)"/>
+
+<!-- Header -->
+<text class="t-eye" x="60" y="62">prob · technical architecture</text>
+<text x="60" y="118"><tspan class="t-h">Agents propose.</tspan><tspan class="t-it" dx="14">Only code accepts.</tspan></text>
+
+<!-- KPIs (results/FROZEN.json) -->
+<g transform="translate(1040,46)">
+  <text class="t-kpi" x="0" y="30">3.96×</text>
+  <text class="t-kpil" x="0" y="50">fewer verifier calls vs. heuristic</text>
+  <text class="t-kpil" x="0" y="66">95 % CI 3.34–4.80 · 25 paired seeds</text>
+  <text class="t-kpi" x="260" y="30">0 / 20</text>
+  <text class="t-kpil" x="260" y="50">blind false claims accepted</text>
+  <text class="t-kpil" x="260" y="66">8 / 8 red-team traps rejected</text>
+</g>
+
+<!-- Edges -->
+<g id="edges">
+  <path id="e-q-lead" class="edge" d="M230 300 L290 300" marker-end="url(#arw)"/>
+  <path id="e-lead-plan" class="edge" d="M460 300 C 495 300 485 230 520 230" marker-end="url(#arw)"/>
+  <path id="e-lead-scout" class="edge" d="M460 300 C 495 300 485 370 520 370" marker-end="url(#arw)"/>
+  <path id="e-plan-res" class="edge" d="M690 230 C 725 230 715 300 750 300" marker-end="url(#arw)"/>
+  <path id="e-scout-res" class="edge" d="M690 370 C 725 370 715 300 750 300" marker-end="url(#arw)"/>
+  <path id="e-res-ver" class="edge" d="M920 300 L990 300" marker-end="url(#arw)"/>
+  <path id="e-ver-cert" class="edge" d="M1210 300 L1280 300" marker-end="url(#arw)"/>
+  <path id="e-sur" class="edge sur" d="M1100 240 L1100 175 Q1100 155 1080 155 L625 155 Q605 155 605 175 L605 192" marker-end="url(#arwS)"/>
+  <path id="e-rej" class="edge no" d="M1100 360 L1100 425 Q1100 445 1080 445 L855 445 Q835 445 835 425 L835 338" marker-end="url(#arwN)"/>
+  <path id="e-cert-red" class="edge" d="M1400 338 L1400 522" marker-end="url(#arw)"/>
+  <path id="e-red-learn" class="edge" d="M1315 560 L1145 560" marker-end="url(#arw)"/>
+  <path id="e-learn-lead" class="edge" d="M975 560 L395 560 Q375 560 375 540 L375 338" marker-end="url(#arw)"/>
+  <path id="e-red-sci" class="edge" d="M1400 598 L1400 646" marker-end="url(#arw)"/>
+  <path id="e-sci-scribe" class="edge" d="M1315 680 L1265 680" marker-end="url(#arw)"/>
+  <path id="e-scribe-paper" class="edge" d="M1095 680 L1045 680" marker-end="url(#arw)"/>
+</g>
+<!-- Edge labels -->
+<text class="t-edge" x="955" y="288" text-anchor="middle">claim</text>
+<text class="t-edge" x="1245" y="288" text-anchor="middle">accept</text>
+<text class="t-edge" x="850" y="146" text-anchor="middle" style="fill:var(--policy)">surprise → reopen assumption · re-plan</text>
+<text class="t-edge" x="968" y="465" text-anchor="middle" style="fill:var(--no)">reject · reason returned · no resubmission</text>
+<text class="t-edge" x="1410" y="440">red-team every result</text>
+<text class="t-edge" x="680" y="580" text-anchor="middle">follow-up questions · generalise › edge case › counterexample</text>
+<text class="t-edge" x="1408" y="630">confirmed</text>
+
+<!-- Nodes: built by script from the list below -->
+<g id="nodes"></g>
+
+<!-- Verifier (the gate) -->
+<g class="node" id="n-ver">
+  <rect x="975" y="225" width="250" height="150" rx="34" fill="#22B3C9" opacity=".18" filter="url(#halo)"/>
+  <rect class="box" x="990" y="240" width="220" height="120" rx="26" style="fill:url(#verG);stroke:#2BC4D6;stroke-width:1.4"/>
+  <circle cx="1022" cy="272" r="15" fill="#22B3C9"/>
+  <path d="M1015 272 l5 5 l9 -10" fill="none" stroke="#04121A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text class="t-name" x="1046" y="278">Verifier</text>
+  <text class="t-role" x="1008" y="310">Domain.check · the only one</text>
+  <text class="t-role" x="1008" y="327">that accepts. Exact rationals,</text>
+  <text class="t-role" x="1008" y="344">symbolic proofs, Lean, fixed tol.</text>
+</g>
+
+<!-- Certificate -->
+<g class="node" id="n-cert">
+  <rect class="box" x="1280" y="262" width="240" height="76" rx="18"/>
+  <rect x="1298" y="284" width="30" height="30" rx="7" fill="#2BC4D6"/>
+  <rect x="1307" y="293" width="12" height="12" rx="2" fill="#04121A"/>
+  <text class="t-name" x="1342" y="294">Certificate</text>
+  <text x="1342" y="314" style="font:500 11px var(--mono);fill:var(--accent)">computed_rigorous</text>
+</g>
+
+<!-- Legend -->
+<g transform="translate(60,640)">
+  <text class="t-band" x="0" y="0">Evidence levels</text>
+  <g transform="translate(0,22)" style="font:500 11.5px var(--mono)">
+    <rect x="0" y="-13" width="104" height="22" rx="11" fill="rgba(43,196,214,.14)" stroke="rgba(43,196,214,.5)"/><text class="t-chip" x="52" y="2" text-anchor="middle">proved_lean</text>
+    <rect x="112" y="-13" width="158" height="22" rx="11" fill="rgba(43,196,214,.14)" stroke="rgba(43,196,214,.5)"/><text class="t-chip" x="191" y="2" text-anchor="middle">computed_rigorous</text>
+    <rect x="278" y="-13" width="96" height="22" rx="11" fill="rgba(255,255,255,.05)" stroke="var(--stroke)"/><text class="t-chip" x="326" y="2" text-anchor="middle">statistical</text>
+    <rect x="382" y="-13" width="86" height="22" rx="11" fill="rgba(255,255,255,.05)" stroke="var(--stroke)"/><text class="t-chip" x="425" y="2" text-anchor="middle">observed</text>
+  </g>
+  <g transform="translate(0,62)">
+    <line x1="0" y1="0" x2="26" y2="0" stroke="#E5615F" stroke-dasharray="5 5" stroke-width="1.6"/><text class="t-role" x="34" y="4">rejected</text>
+    <line x1="110" y1="0" x2="136" y2="0" stroke="#E3A93C" stroke-dasharray="5 5" stroke-width="1.6"/><text class="t-role" x="144" y="4">surprise / human gate</text>
+    <circle cx="300" cy="0" r="5" fill="#BFF6FF" filter="url(#soft)"/><text class="t-role" x="312" y="4">handoff with ids</text>
+  </g>
+</g>
+
+<!-- Bottom bands -->
+<g transform="translate(60,770)">
+  <rect width="700" height="96" rx="20" fill="rgba(227,169,60,.06)" stroke="rgba(227,169,60,.28)"/>
+  <text class="t-band" x="22" y="28" style="fill:var(--policy)">Omnigent policies · constrain every agent</text>
+  <g id="chips-pol" transform="translate(22,52)"></g>
+</g>
+<g transform="translate(790,770)">
+  <rect width="750" height="96" rx="20" fill="rgba(43,196,214,.05)" stroke="rgba(43,196,214,.25)"/>
+  <text class="t-band" x="22" y="28" style="fill:var(--accent)">Shared record · anyone can re-check</text>
+  <g id="chips-rec" transform="translate(22,52)"></g>
+</g>
+
+<circle id="pulse" class="pulse" r="5" cx="-20" cy="-20"/>
+</svg>
+</div>
+
+<div class="bar">
+  <p>One research round, left to right. Agents only act through the frozen harness <code style="font-family:var(--mono)">asd.cli</code>; every call is a line in a hash-chained <code style="font-family:var(--mono)">record.jsonl</code>. Numbers from <code style="font-family:var(--mono)">results/FROZEN.json</code>.</p>
+  <div class="btns">
+    <button id="play" class="primary" type="button">Play round</button>
+    <button id="full" type="button">Fullscreen for recording</button>
+  </div>
+</div>
+</div>
+
+<script>
+const NS="http://www.w3.org/2000/svg";
+const N=[ // id, x, y, w, label, role, badge, color
+ ["q",60,262,170,"Question","research goal · human",  "?","var(--c-sci)"],
+ ["lead",290,262,170,"Lead","picks the next step","Pl","var(--c-lead)"],
+ ["plan",520,192,170,"Planner","gain vs. verifier cost","Pn","var(--c-plan)"],
+ ["scout",520,332,170,"Scout","finds evidence","Sc","var(--c-scout)"],
+ ["res",750,262,170,"Researcher","runs experiments","Re","var(--c-res)"],
+ ["red",1315,522,170,"Red team","tries to refute","RT","var(--c-red)"],
+ ["learn",975,522,170,"Learner","new questions","Le","var(--c-learn)"],
+ ["sci",1315,646,170,"Scientist","human · ASK gate","Hu","var(--c-sci)"],
+ ["scribe",1095,646,170,"Scribe","writes the paper","Sb","var(--c-scribe)"],
+ ["paper",875,646,170,"Paper","numbers = claim ids","∎","var(--c-ver)"]
+];
+const g=document.getElementById("nodes");
+function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||g).appendChild(e);return e}
+for(const [id,x,y,w,lab,role,b,c] of N){
+  const h=76, n=el("g",{class:"node",id:"n-"+id});
+  if(id==="q"||id==="sci"){el("rect",{class:"box",x,y,width:w,height:h,rx:18,style:"stroke:rgba(227,169,60,.55);stroke-dasharray:4 4"},n)}
+  else el("rect",{class:"box",x,y,width:w,height:h,rx:18},n);
+  el("rect",{x:x+16,y:y+22,width:32,height:32,rx:9,style:"fill:"+c},n);
+  const bt=el("text",{class:"t-badge",x:x+32,y:y+43,"text-anchor":"middle"},n);bt.textContent=b;
+  const t1=el("text",{class:"t-name",x:x+60,y:y+34},n);t1.textContent=lab;
+  const t2=el("text",{class:"t-role",x:x+60,y:y+53},n);t2.textContent=role;
+  const lim=w-72; if(t2.getComputedTextLength()>lim){t2.style.fontSize="11px"; if(t2.getComputedTextLength()>lim){t2.setAttribute("textLength",lim);t2.setAttribute("lengthAdjust","spacingAndGlyphs")}}
+  if(b==="∎"){bt.remove();el("rect",{x:x+26,y:y+32,width:12,height:12,rx:2,fill:"#04121A"},n)}
+}
+function chips(id,list,color){
+  const p=document.getElementById(id);let x=0,y=0,max=+p.parentNode.firstElementChild.getAttribute("width")-44;
+  for(const [txt,kind] of list){
+    const w=txt.length*6.9+22; if(x+w>max){x=0;y+=28}
+    el("rect",{x,y:y-14,width:w,height:22,rx:11,fill:kind==="deny"?"rgba(229,97,95,.12)":kind==="ask"?"rgba(227,169,60,.14)":"rgba(255,255,255,.05)",stroke:kind==="deny"?"rgba(229,97,95,.5)":kind==="ask"?"rgba(227,169,60,.55)":"rgba(255,255,255,.12)"},p);
+    const t=el("text",{class:"t-chip",x:x+w/2,y:y+1,"text-anchor":"middle"},p);t.textContent=txt; x+=w+8;
+  }
+}
+chips("chips-pol",[["DENY harness_only","deny"],["DENY verifier_only","deny"],["DENY leak_guard","deny"],["no_pruefe except researcher","deny"],["ASK publish_gate","ask"],["cost_budget 40 USD","ask"],["spawn_bounds ≤3","x"],["no_resubmission","x"]]);
+chips("chips-rec",[["record.jsonl · sha256 hash chain","x"],["Databricks Delta + MLflow","x"],["re-verify in browser (Pyodide)","x"],["MCP server: probatum","x"],["preregistered: prereg.md","x"]]);
+
+// Motion: Apple-style spring-ish ease, one round of the loop
+const pulse=document.getElementById("pulse");
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const steps=[["e-q-lead"],["e-lead-plan","e-lead-scout"],["e-plan-res","e-scout-res"],["e-res-ver"],["e-rej"],["e-res-ver"],["e-sur"],["e-plan-res"],["e-res-ver"],["e-ver-cert"],["e-cert-red"],["e-red-learn"],["e-learn-lead"],["e-red-sci"],["e-sci-scribe"],["e-scribe-paper"]];
+const arrive={"e-q-lead":"lead","e-lead-plan":"plan","e-lead-scout":"scout","e-plan-res":"res","e-scout-res":"res","e-res-ver":"ver","e-rej":"res","e-sur":"plan","e-ver-cert":"cert","e-cert-red":"red","e-red-learn":"learn","e-learn-lead":"lead","e-red-sci":"sci","e-sci-scribe":"scribe","e-scribe-paper":"paper"};
+let running=false;
+function animEdge(id,dur){return new Promise(r=>{const p=document.getElementById(id),L=p.getTotalLength();p.classList.add("on");
+  const dot=id===steps[1][1]||id==="e-scout-res"?el("circle",{class:"pulse",r:5},document.getElementById("flow")):pulse;
+  const t0=performance.now();(function f(now){const k=Math.min(1,(now-t0)/dur),pt=p.getPointAtLength(ease(k)*L);dot.setAttribute("cx",pt.x);dot.setAttribute("cy",pt.y);
+  if(k<1)requestAnimationFrame(f);else{p.classList.remove("on");if(dot!==pulse)dot.remove();const n=document.getElementById("n-"+arrive[id]);if(n){n.classList.add("lit");setTimeout(()=>n.classList.remove("lit"),700)}r()}})(t0)})}
+async function play(){if(running)return;running=true;document.getElementById("play").textContent="Playing…";
+  for(const s of steps){await Promise.all(s.map(id=>animEdge(id,950)));await new Promise(r=>setTimeout(r,180))}
+  pulse.setAttribute("cx",-20);running=false;document.getElementById("play").textContent="Play round"}
+document.getElementById("play").addEventListener("click",play);
+document.getElementById("full").addEventListener("click",()=>{const s=document.getElementById("stage");(s.requestFullscreen?s.requestFullscreen():Promise.reject()).catch(()=>{})});
+if(!matchMedia("(prefers-reduced-motion: reduce)").matches) setTimeout(play,600);
+</script>
