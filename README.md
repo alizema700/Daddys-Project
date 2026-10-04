@@ -31,6 +31,26 @@ fünf geprüfte numerische Befunde zu offenen Fragen aus Suleman 2026 (`results/
 
 
 
+## Theoretical physics domain and hypothesis-driven direction (this branch)
+
+- **Domain `theophys`** (`asd/domains/theophys_domain.py`): 23 claim types across spin chains (exact spectra by characteristic polynomial and
+  rigorous root isolation), Ising lattices, general relativity, SU(N) gauge theory (β-function, anomalies), Bell inequalities, 1D quantum mechanics
+  and symbolic analysis (interval branch-and-bound bounds). Self-test 55/55. Lean 4 proofs (`"beweis": "lean"`, level `proved_lean`) for the
+  integer/finite claim types; confirmed claims are upgraded to Lean automatically when Lean is installed.
+- **Hypotheses with a provisional status** (`asd/hypothesen.py`): every experiment is evaluated in code against the predictions of the hypotheses
+  you (or agents) postulate; the status (testen → beweisen / entscheiden / verfeinern) decides what the lab does next. Only the verifier makes a
+  hypothesis final.
+- **Consistency** (`asd/konsistenz.py`): contradicting confirmed claims are contested automatically.
+- **No budget limits**; the scout keeps 300 sources. Existing domains send byte-identical prompts (caches and frozen benchmarks stay valid).
+- Details: `docs/FRAMEWORK.md` §2e–2g and `docs/THEORETICAL_PHYSICS_TUNING.md`.
+
+```bash
+python -m asd.selftest theophys
+python -m asd.lab_loop --domain theophys --hypothesen my_hypotheses.json --ohne-gates   # quick start without phases 1-4 (logged as deviation)
+python -m asd.hypothesen list --projekt theophys
+python -m asd.konsistenz theophys --recheck
+```
+
 ## Measured acceleration (preregistered replay, H7/H8)
 
 Task: rediscover a known result without access to it (domain `lattice`, limit aspect ratio y_∞ ≈ 1.249621 of the optimal 2D lattice for
@@ -204,7 +224,7 @@ workflow. Agents act only through the frozen harness `python -m asd.cli <command
 |---|---|---|---|---|
 | `verifier-gated-lab` (lead, PI) | what runs next; when to stop or switch thread; reacts to surprises | `status`, `plan`, `fragen`; `sys_session_send`, `sys_read_inbox` | research goal | round decisions, final summary |
 | `scout` (haiku, read-only) | which evidence is relevant | `wissen`, `fragen` | domain, project | evidence / claim ids, open question ids |
-| `planner` (sonnet, read-only + `waehle`) | which of ≥2 code-generated rival experiments to run (cost in verifier calls vs. expected gain, budget); re-planning after a surprise | `options`, `waehle`, `reopen`, `plan`, `status` | question id / reopen request | chosen option id + rejected ids |
+| `planner` (sonnet, read-only + `waehle`) | which of ≥2 code-generated rival experiments to run (cost in verifier calls vs. expected gain, direction from the provisional hypothesis status); re-planning after a surprise | `options`, `waehle`, `reopen`, `plan`, `status` | question id / reopen request | chosen option id + rejected ids |
 | `researcher` (sonnet) | experiments and the claim; **only agent allowed to call the verifier** | `doku`, `fragen`, `experiment`, `pruefe` | question id + option id | experiment ids, claim id (+ surprise flag) |
 | `redteam` (**opus**, different model, read-only) | counter-checks that would pass if the claim were false | `status`, `doku`, `redteam` | claim id | counter-check ids, claim status |
 | `learner` (haiku) | follow-up questions (generalisation > edge case > counterexample) | `wissen`, `folgefragen` | claim / round id | new question ids |
@@ -218,7 +238,6 @@ confirmed claim). Surprises: `asd.cli pruefe` reports `ueberraschung: true` when
 
 | Policy | Type | Purpose |
 |---|---|---|
-| `cost_budget` | built-in `cost.cost_budget` | hard limit 40 USD, ASK at 10 and 20 USD |
 | `spawn_bounds` | built-in `orchestration.spawn_bounds` | at most 3 `sys_session_send` dispatches per turn |
 | `verifier_only` | CEL | DENY any direct write to `state.json` / `record.jsonl` / `projects/` (redirect, `tee`, `cp`, `mv`, `sed -i`, file write tools) — claims are stored only by `asd.cli pruefe` |
 | `leak_guard` | CEL | DENY reading blocked sources (hold-out results, answer keys, pre-cutoff literature; paths/terms configurable, same list as `omni/leak_guard.json`) |
@@ -226,9 +245,7 @@ confirmed claim). Surprises: `asd.cli pruefe` reports `ueberraschung: true` when
 | `publish_gate` | CEL | ASK (human approval) before `asd.paper` or `git push` |
 | `read_only` | built-in `orchestration.read_only_os` | scout, planner, redteam cannot write files |
 | `no_pruefe` | CEL (per agent) | every agent except the researcher is denied `asd.cli pruefe` |
-| `tool_call_cap` | built-in `safety.max_tool_calls_per_session` | researcher: at most 30 tool calls per session |
 | `loop_guard` | Python (`asd.omni_policies`) | own loop guard that ignores `sys_read_inbox` (the built-in `detect_loop` blocks headless runs on the third empty inbox read); DENY after 5 identical calls |
-| `max_tool_calls` | built-in | 300 tool calls per session, all agents |
 | `allowlist` (per agent) | Python | each role may call only its own `asd.cli` commands (scout: wissen/fragen/status; planner: options/waehle/reopen/plan/status/hypothese; researcher: doku/fragen/experiment/pruefe; red team: status/doku/wissen/redteam; learner: wissen/folgefragen; scribe: paper only). The PI has **no shell at all** (no compute tools by construction) |
 | `publish_requires_votes` | Python, reads `projects/<P>/state.json` | DENY `asd.paper` until every new confirmed claim has a red-team vote |
 | `no_resubmission` | Python, reads the project state | DENY re-submitting a claim whose canonical hash the verifier already rejected (also enforced inside `asd.cli pruefe`) |
@@ -261,7 +278,7 @@ certified violations of η ≥ e^(−2Δ); classification of the two-bound-state
 `run_forever.py` lässt das Labor unbeaufsichtigt laufen: Zyklus = `asd.lab_loop --runden 5` → `asd.paper` (inkl. Referee-Durchgang)
 → Qualitätskriterium `asd/quality.py:publikationsreif`. Es stoppt erst, wenn ein bestätigtes, rigoros geprüftes Hauptresultat
 existiert, das laut Literatur neu ist (offen_laut_literatur / nicht_gefunden), das Paper 0 Verstöße hat und der Referee keine schwere,
-mit vorhandenen Claims behebbare Schwäche meldet; dann baut es `paper_final.pdf` und beendet sich. Sonst nach `--max-runden` (Default 200) Zyklen.
+mit vorhandenen Claims behebbare Schwäche meldet; dann baut es `paper_final.pdf` und beendet sich. Ein Zyklenlimit gibt es nur mit `--max-runden N` (Standard 0 = unbegrenzt).
 Abstürze werden mit Traceback nach `logs/<domain>/supervisor.log` geschrieben und neu gestartet (Zustand in `projects/<domain>/state.json`);
 Rate-Limits/Quota werden exponentiell abgewartet (1, 2, 4 … 30 min), nie abgebrochen. Bleibt ein Faden 3 Runden ohne neuen Claim,
 erzwingt das Labor einen Themenwechsel (`--themenwechsel`).

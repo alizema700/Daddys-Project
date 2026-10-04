@@ -5,7 +5,9 @@
 Befehle: selftest | wissen | fragen [--add-json f] | plan | options --frage <id> | waehle (wähle) --option <id> --grund "..."
          | experiment --spec-json <datei|json> (oder --op/--args) | pruefe (prüfe) --claim-json <datei|json>
          | redteam --claim <id> [--auto] [--gegen-json <datei|json>] | folgefragen --aus <runde|claim|frage> --json <datei|json>
-         | reopen --annahme <id> --claim <id> --grund "..." | doku | status
+         | reopen --annahme <id> --claim <id> --grund "..." | doku | status | claim --claim <id>
+         | hypothese --text "..." [--kriterium-json ..] [--vorhersagen-json ..] [--pruefung-json ..] [--frage F]
+         | hypothesen   (vorläufiger Status jeder Hypothese aus den Experimenten + Richtung, die der Code daraus ableitet)
 
 Nur `prüfe` schreibt bestätigte Claims in state.json. Jede Aktion wird nach projects/<p>/record.jsonl angehängt.
 Der Verifier selbst (Domain.check) bleibt unverändert; die CLI ruft ihn nur auf."""
@@ -184,8 +186,14 @@ class CLI:
         r = _jsonfest(self.D.run_op(self.a.op, args))
         self.sperre()
         self.P.s.setdefault("experimente", []).append({"ts": now(), "agent": self.agent, "op": self.a.op, "args": args, "frage": self.P.s.get("aktive_frage")})
-        eid = f"E{len(self.P.s['experimente'])}"; self.P.save()
-        print(f"EXPERIMENT {eid} " + json.dumps(r, ensure_ascii=False)[:4000]); self.record("experiment", ergebnis=str(r)[:300], ein={"frage": self.P.s.get("aktive_frage"), "option": self.a.option or (self.P.s.get("aktive_option") or {}).get("id")},
+        eid = f"E{len(self.P.s['experimente'])}"
+        if len(json.dumps(r, default=str)) <= 20000: self.P.s["experimente"][-1]["ergebnis"] = r     # für die nachträgliche Auswertung von Hypothesen
+        from . import hypothesen
+        aend = hypothesen.bewerte_experimente(self.P.s, [{"op": self.a.op, "args": args, "ergebnis": r, "id": eid}], quelle=f"asd.cli:{self.agent}")
+        self.P.save()
+        print(f"EXPERIMENT {eid} " + json.dumps(r, ensure_ascii=False)[:4000])
+        if aend: print("HYPOTHESEN " + json.dumps([{"hypothese": h, "vorher": a_, "jetzt": n_} for h, a_, n_ in aend], ensure_ascii=False))
+        self.record("experiment", ergebnis=str(r)[:300], ein={"frage": self.P.s.get("aktive_frage"), "option": self.a.option or (self.P.s.get("aktive_option") or {}).get("id")},
                     aus={"experiment": eid, "op": self.a.op}); return 0
 
     def pruefe(self):
@@ -228,20 +236,21 @@ class CLI:
                                        "option": self.a.option or (self.P.s.get("aktive_option") or {}).get("id"),
                                        "benutzt": [b for b in (c.get("benutzt") or []) if any(x["id"] == b and x.get("status") == "bestätigt" for x in self.P.s["claims"])]})
             if q: q["status"] = "beantwortet"
+            self._nach_claim(cid, out_extra := {})
         else:
-            cid = None
+            cid = None; out_extra = {}
             self.P.s["widerlegt"].append({"frage_id": qid, "frage": q["frage"] if q else "", "runde": runde,
                                           "gruende": [{"stufe": f"omnigent:{self.agent}", "pruefungstyp": ps[0].get("typ") if ps else None, "grund": why[:240]}],
                                           "claim_hash": h})
         self.P.s["runden"].append({"runde": runde, "frage": qid, "status": "beantwortet" if ok else "ungeprüft", "red_team": [], "sek": 0,
                                    "faden_id": faden_of(self.P, q) if q else None, "quelle": "omnigent"})
         self.P.save()
-        out = {"bestanden": bool(ok), "level": lvl, "grund": why[:400], "claim_id": cid}
+        out = {"bestanden": bool(ok), "level": lvl, "grund": why[:400], "claim_id": cid, **out_extra}
         if ueb:
             out["ueberraschung"] = True; out["widerspricht_annahme"] = ueb["annahme"]; out["ueberraschung_grund"] = ueb["grund"]
             self.P.s["claims"][-1]["ueberraschung"] = ueb; self.P.save()
         for hy in self.P.s.get("hypothesen", []):                        # präregistrierte Agenten-Hypothesen zu dieser Frage auswerten
-            if hy.get("status") != "offen" or hy["kriterium"].get("frage") != qid: continue
+            if hy.get("status") != "offen" or (hy.get("kriterium") or {}).get("frage") != qid: continue
             erw = hy["kriterium"].get("erwartet"); ist = {"bestanden": bool(ok), "abgelehnt": not ok, "ueberraschung": bool(ueb), "keine_ueberraschung": bool(ok) and not ueb}.get(erw)
             if ist is None: continue
             hy["status"] = "bestätigt" if ist else "widerlegt"; hy["ausgewertet_durch"] = cid or "abgelehnte Behauptung"; hy["ausgewertet"] = now()
@@ -252,6 +261,28 @@ class CLI:
         self.P.save()
         print("RESULT " + json.dumps(out, ensure_ascii=False))
         self.record("pruefe", ein={"frage": qid, "option": self.a.option or (self.P.s.get("aktive_option") or {}).get("id")}, aus={"claim": cid}, ergebnis=out); return 0
+
+    def _nach_claim(self, cid, out):
+        """Automatische Verstärkung (Domain.auto_verstaerkung, z. B. Lean), Konsistenz gegen alle bestätigten Claims, Hypothesen-Abgleich."""
+        from . import konsistenz, hypothesen
+        c = next(x for x in self.P.s["claims"] if x["id"] == cid)
+        for p2 in (self.D.auto_verstaerkung(c["pruefung"]) if hasattr(self.D, "auto_verstaerkung") else []) or []:
+            ok2, why2, _ = self.D.check(p2)
+            if ok2:
+                c.update(verstaerkt_von=c["pruefung"], pruefung=p2, level=self.D.level(p2), text=self.D.describe(p2), grund=why2); out["verstaerkt"] = c["level"]
+                self.P.append("decisions.md", f"| {now()} | PRÜFER | {cid} automatisch verstärkt zu {c['level']} | {str(why2)[:160]} |"); break
+        inc = konsistenz.neuer_claim(self.P.s, self.D, cid)
+        if inc:
+            out["inkonsistent"] = [[a, b] for a, b, _ in inc]
+            for a, b, betr in inc: self.P.append("decisions.md", f"| {now()} | KONSISTENZ | {a} ⟂ {b}: beide angefochten | abhängig ungültig: {betr} |")
+        best = hypothesen.abgleich_claims(self.P.s)
+        if best: out["hypothesen_bestaetigt"] = [h for h, _ in best]
+
+    def hypothesen(self):
+        """Hypothesen mit vorläufigem Status (aus Experimenten) und der Richtung, die der Code daraus ableitet (nur lesen)."""
+        from . import hypothesen as H
+        print(H.tabelle(self.P.s)); r = H.richtung(self.P.s)
+        print("RICHTUNG " + json.dumps(r, ensure_ascii=False)); self.record("hypothesen", aus={"richtung": r and r["hypothese"]}, ergebnis=r and r["modus"]); return 0
 
     def redteam(self):
         c0 = next((x for x in self.P.s["claims"] if x["id"] == self.a.claim), None)
@@ -289,17 +320,28 @@ class CLI:
         """Agent-generierte Hypothese mit maschinenprüfbarem Erfolgskriterium VOR dem Experiment festschreiben (Hash in prereg.md und Ledger).
         --text "...", --kriterium-json '{"frage": "F26", "erwartet": "bestanden|abgelehnt|ueberraschung|keine_ueberraschung"}'"""
         import hashlib
-        kr = lade_json(self.a.kriterium_json)
-        if kr.get("erwartet") not in ("bestanden", "abgelehnt", "ueberraschung", "keine_ueberraschung") or not kr.get("frage"):
+        vh = lade_json(self.a.vorhersagen_json) if self.a.vorhersagen_json else None; zp = lade_json(self.a.pruefung_json) if self.a.pruefung_json else None
+        kr = lade_json(self.a.kriterium_json) if self.a.kriterium_json else None
+        if kr is None and not (vh or zp): raise SystemExit("hypothese braucht --kriterium-json und/oder --vorhersagen-json / --pruefung-json")
+        if kr is not None and (kr.get("erwartet") not in ("bestanden", "abgelehnt", "ueberraschung", "keine_ueberraschung") or not kr.get("frage")):
             raise SystemExit("kriterium braucht frage und erwartet in {bestanden, abgelehnt, ueberraschung, keine_ueberraschung}")
         if not self.a.text or len(self.a.text) < 10: raise SystemExit("hypothese braucht --text")
-        hid = f"H{len(self.P.s.get('hypothesen', [])) + 1}"
-        h = hashlib.sha256(json.dumps({"text": self.a.text, "kriterium": kr}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-        self.P.s.setdefault("hypothesen", []).append({"id": hid, "agent": self.agent, "origin": f"AGENT:{self.agent}", "text": self.a.text, "kriterium": kr,
-                                                      "sha256": h, "ts": now(), "status": "offen"})
+        if vh or zp:
+            from . import hypothesen as H
+            try: hy = H.neu(self.P.s, self.a.text, vh, zp, self.a.frage or None, origin=f"AGENT:{self.agent}", agent=self.agent, kriterium=kr)
+            except ValueError as e: raise SystemExit(f"hypothese: {e}")
+            H.bewerte_experimente(self.P.s, H.protokollierte_experimente(self.P.dir, self.P.s), quelle="nachträglich")
+            hid, h = hy["id"], hy["sha256"]
+        else:
+            hid = f"H{len(self.P.s.get('hypothesen', [])) + 1}"
+            h = hashlib.sha256(json.dumps({"text": self.a.text, "kriterium": kr}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+            self.P.s.setdefault("hypothesen", []).append({"id": hid, "agent": self.agent, "origin": f"AGENT:{self.agent}", "text": self.a.text, "kriterium": kr,
+                                                          "sha256": h, "ts": now(), "status": "offen"})
         self.P.append("prereg.md", f"\n## Hypothese {hid} ({now()}, agent-generiert von {self.agent}, vor dem Experiment)\n- Aussage: {self.a.text}\n"
-                                   f"- Erfolgskriterium (maschinell geprüft): {json.dumps(kr, ensure_ascii=False)}\n- sha256: {h}")
-        self.P.save(); print("HYPOTHESE " + json.dumps({"id": hid, "sha256": h[:16]})); self.record("hypothese", ein={"frage": kr["frage"]}, aus={"hypothese": hid, "sha256": h[:16]}, ergebnis=self.a.text); return 0
+                                   f"- Erfolgskriterium (maschinell geprüft): {json.dumps(kr, ensure_ascii=False)}\n"
+                                   + (f"- Vorhersagen: {json.dumps(vh, ensure_ascii=False)}\n" if vh else "") + (f"- Ziel-Prüfung: {json.dumps(zp, ensure_ascii=False)}\n" if zp else "")
+                                   + f"- sha256: {h}")
+        self.P.save(); print("HYPOTHESE " + json.dumps({"id": hid, "sha256": h[:16]})); self.record("hypothese", ein={"frage": (kr or {}).get("frage") or self.a.frage}, aus={"hypothese": hid, "sha256": h[:16]}, ergebnis=self.a.text); return 0
 
     def claim(self):
         """Inhalt eines Claims lesen (Typ, Prüfung, Stufe, Status, Red-Team-Voten) -- nur lesen."""
@@ -317,7 +359,8 @@ class CLI:
         faeden = sorted({faden_of(self.P, q) for q in s["fragen"] if q["status"] == "offen"})
         print(json.dumps({"runden": len(s["runden"]), "claims_bestaetigt": [c["id"] for c in best], "angefochten": [c["id"] for c in s["claims"] if c["status"] == "angefochten"],
                           "negative": len(s["widerlegt"]), "offene_faeden": faeden, "aktive_frage": s.get("aktive_frage"), "verifier_aufrufe": s.get("verifier_aufrufe", 0),
-                          "budget_verifier": s.get("budget_verifier", 40), "budget_rest": s.get("budget_verifier", 40) - s.get("verifier_aufrufe", 0),
+                          "budget_verifier": s.get("budget_verifier") or "unbegrenzt",
+                          "budget_rest": (s["budget_verifier"] - s.get("verifier_aufrufe", 0)) if s.get("budget_verifier") else "unbegrenzt",
                           "annahmen": [{"id": x["id"], "status": x.get("status", "aktiv")} for x in s.get("annahmen", [])]},
                          ensure_ascii=False))
         self.record("status"); return 0
@@ -325,13 +368,14 @@ class CLI:
 
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="python -m asd.cli", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("befehl", choices=["selftest", "wissen", "fragen", "plan", "options", "wähle", "waehle", "experiment", "prüfe", "pruefe", "redteam", "folgefragen", "reopen", "doku", "hypothese", "claim", "status"])
+    ap.add_argument("befehl", choices=["selftest", "wissen", "fragen", "plan", "options", "wähle", "waehle", "experiment", "prüfe", "pruefe", "redteam", "folgefragen", "reopen", "doku", "hypothese", "hypothesen", "claim", "status"])
     ap.add_argument("--domain", default=os.environ.get("ASD_DOMAIN", "lattice")); ap.add_argument("--projekt", default=os.environ.get("ASD_PROJEKT", ""))
     ap.add_argument("--agent", default=""); ap.add_argument("--frage", default=""); ap.add_argument("--option", default="")
     ap.add_argument("--grund", default=""); ap.add_argument("--erzwinge", action="store_true"); ap.add_argument("--add-json", default="")
     ap.add_argument("--op", default=""); ap.add_argument("--args", default="{}"); ap.add_argument("--claim-json", default="")
     ap.add_argument("--claim", default=""); ap.add_argument("--gegen-json", default=""); ap.add_argument("--auto", action="store_true", help="redteam: domänen-generierte Angriffe")
     ap.add_argument("--spec-json", default=""); ap.add_argument("--aus", default=""); ap.add_argument("--json", default=""); ap.add_argument("--annahme", default=""); ap.add_argument("--text", default=""); ap.add_argument("--kriterium-json", default="")
+    ap.add_argument("--vorhersagen-json", default=""); ap.add_argument("--pruefung-json", default="")
     a = ap.parse_args(argv)
     cmd = {"wähle": "waehle", "prüfe": "pruefe"}.get(a.befehl, a.befehl)
     cli = CLI(a)

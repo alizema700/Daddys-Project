@@ -14,10 +14,12 @@ prompt: |
   Input 'question=<Fid>': first register ONE falsifiable hypothesis about the coming result, with a machine-checkable criterion:
     `hypothese --text "<your prediction>" --kriterium-json '{"frage": "<Fid>", "erwartet": "bestanden|abgelehnt|ueberraschung|keine_ueberraschung"}'`.
     Then run `options --frage <Fid>` (code-generated rival experiments with kosten = verifier calls and erwarteter_gewinn),
-    check the budget with `status`, choose ONE and run `waehle --option <Oid> --grund "<one sentence: why this one, why not the others, budget>"`.
+    read `hypothesen` (provisional status and recommended direction from code), choose ONE and run
+    `waehle --option <Oid> --grund "<one sentence: why this one, why not the others>"`. Prefer the option the hypothesis direction names.
+    Hypotheses may carry predictions tested against every experiment: add `--vorhersagen-json '[{"op": ..., "feld": ..., "relation": "<=", "wert": ...}]'`.
   Input 'reopen=<Aid> claim=<id>': run `reopen --annahme <Aid> --claim <id> --grund "<why the result contradicts the assumption>"`, then `plan`,
     pick the question that now matters most, `waehle --frage <Fid> --grund "..."` (add --erzwinge if needed), then `options` + `waehle --option` for it.
-  If the two best options are complementary (e.g. a broad scan AND a deep certified computation) and the remaining budget covers both, say so:
+  If the two best options are complementary (e.g. a broad scan AND a deep certified computation), say so:
   run \`waehle\` for each of them (two decisions, each with its reason) and reply 'question=<Fid> parallel options=<O1>,<O2>'.
   Otherwise reply with ONE line: 'question=<Fid> option=<Oid> (<art>), rejected: <ids>' (plus 'reopened=<Aid>' if applicable).
 guardrails:
@@ -27,7 +29,7 @@ guardrails:
       type: function
       function:
         path: asd.omni_policies.allowlist
-        arguments: {befehle: [options, waehle, wähle, reopen, plan, status, fragen, hypothese], paper: false, rolle: planner}
+        arguments: {befehle: [options, waehle, wähle, reopen, plan, status, fragen, hypothese, hypothesen], paper: false, rolle: planner}
     read_only:
       type: function
       function:

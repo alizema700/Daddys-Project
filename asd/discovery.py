@@ -34,7 +34,13 @@ MULTI_DOC = ('Deine Endantwort braucht eine ausführbare Prüfung ("pruefung"), 
 ANTWORT_SCHEMA = '{"antwort": "<Kategorie oder kurze Antwort, sonst \\"unbekannt\\">", "zahl": <Zahl oder null>, "konfidenz": <0..1>, "pruefung": {...}, "begruendung": "<2-3 Sätze>"}'
 
 
-def _sys(strategie):
+def _sys(strategie, domain=None):
+    """Domänen können eigene Forscher-Personas (Domain.strategien) und eine eigene Rolle (Domain.forscher_rolle) setzen; sonst unverändert."""
+    eig = getattr(domain, "strategien", None) or {}
+    if strategie in eig:
+        rolle = getattr(domain, "forscher_rolle", "Du bist ein Forscher in einem automatisierten Labor.")
+        return (f"{rolle} {eig[strategie]} Du kennst keine Ergebnisse vorab; stütze Aussagen auf Experimente. "
+                "Experimente sind deine wichtigste Evidenz: nutze sie ausgiebig, bevor du dich festlegst. Antworte nur mit gültigem JSON.")
     return (f"Du bist ein Forscher in einem automatisierten Labor für mathematische Physik. {STRATEGIEN[strategie]} "
             "Du kennst keine Ergebnisse vorab; stütze Aussagen auf Experimente. Antworte nur mit gültigem JSON.")
 
@@ -69,21 +75,29 @@ def _fmt(entries):
     return "\n".join(f"[E{e['id']}] {e['op']} {json.dumps(e['args'])} -> {json.dumps(e['ergebnis'])[:700]}" for e in entries)
 
 
-def forscher(kontext, frage, strategie, lab, salt, max_ops=8, model=None):
+def forscher(kontext, frage, strategie, lab, salt, max_ops=None, model=None):
+    """Experiment-Gewicht je Domäne: Domain.max_ops (erster Plan, Standard 8), Domain.max_ops_folge (jede weitere Runde, Standard 6),
+    Domain.experiment_runden (Zahl der Nachplan-Runden vor der Endantwort, Standard 1). Mit den Standardwerten sind Prompts und Salts
+    unverändert (Cache und eingefrorene Benchmarks bleiben gültig)."""
     who = f"forscher-{strategie}"; D = lab.domain
+    max_ops = max_ops or getattr(D, "max_ops", 8); folge = getattr(D, "max_ops_folge", 6); k = max(1, int(getattr(D, "experiment_runden", 1)))
     cdoc = CLAIM_DOC if D.name == "lattice" else D.claim_doc + "\n" + MULTI_DOC
     base = f"{kontext}\n\nFRAGE: {frage}\n\n{D.primitive_doc}\n\n{cdoc}"
-    trace = {"strategie": strategie, "runden": []}
+    trace = {"strategie": strategie, "runden": []}; sysp = _sys(strategie, D)
     p1 = base + f'\n\nRunde 1: Plane bis zu {max_ops} Experimente. Antworte als JSON: {{"ueberlegung": "...", "plan": [{{"op": "...", "args": {{...}}}}]}}'
-    r1 = ask_json(p1, _sys(strategie), salt=f"{salt}-{strategie}-r1", model=model); trace["runden"].append(r1)
+    r1 = ask_json(p1, sysp, salt=f"{salt}-{strategie}-r1", model=model); trace["runden"].append(r1)
     ex = [lab.run(s["op"], s.get("args", {}), who) for s in (r1.get("plan") or [])[:max_ops] if isinstance(s, dict) and "op" in s]
-    p2 = (base + f"\n\nDeine Experimente und Ergebnisse:\n{_fmt(ex)}\n\nRunde 2: Entweder du brauchst noch Experimente "
-          f'(dann JSON {{"plan": [...]}} mit bis zu 6 Einträgen) oder du antwortest final als JSON: {ANTWORT_SCHEMA}')
-    r2 = ask_json(p2, _sys(strategie), salt=f"{salt}-{strategie}-r2", model=model); trace["runden"].append(r2)
+    r2 = {}
+    for j in range(k):                                         # Nachplan-Runden: weitere Experimente oder Endantwort
+        kopf = "Deine Experimente und Ergebnisse" if j == 0 else "Alle Experimente und Ergebnisse"
+        p2 = (base + f"\n\n{kopf}:\n{_fmt(ex)}\n\nRunde {2 + j}: Entweder du brauchst noch Experimente "
+              f'(dann JSON {{"plan": [...]}} mit bis zu {folge} Einträgen) oder du antwortest final als JSON: {ANTWORT_SCHEMA}')
+        r2 = ask_json(p2, sysp, salt=f"{salt}-{strategie}-r{2 + j}", model=model); trace["runden"].append(r2)
+        if "antwort" in r2 or not r2.get("plan"): break
+        ex += [lab.run(s["op"], s.get("args", {}), who) for s in r2["plan"][:folge] if isinstance(s, dict) and "op" in s]
     if "antwort" not in r2 and r2.get("plan"):
-        ex += [lab.run(s["op"], s.get("args", {}), who) for s in r2["plan"][:6] if isinstance(s, dict) and "op" in s]
-        p3 = base + f"\n\nAlle Experimente und Ergebnisse:\n{_fmt(ex)}\n\nRunde 3 (final): Antworte als JSON: {ANTWORT_SCHEMA}"
-        r2 = ask_json(p3, _sys(strategie), salt=f"{salt}-{strategie}-r3", model=model); trace["runden"].append(r2)
+        p3 = base + f"\n\nAlle Experimente und Ergebnisse:\n{_fmt(ex)}\n\nRunde {2 + k} (final): Antworte als JSON: {ANTWORT_SCHEMA}"
+        r2 = ask_json(p3, sysp, salt=f"{salt}-{strategie}-r{2 + k}", model=model); trace["runden"].append(r2)
     trace["experimente"] = [e["id"] for e in ex]; trace["final"] = r2
     return trace
 
@@ -141,10 +155,12 @@ def consistent(ans, p):
 KASKADE = (("sparsam", "haiku"), ("numeriker", "haiku"), ("skeptiker", "sonnet"), ("theoretiker", "sonnet"))
 
 
-def solve_cascade(kontext, frage, salt=0, stufen=KASKADE, domain=None, staerkung=2):
+def solve_cascade(kontext, frage, salt=0, stufen=None, domain=None, staerkung=None):
     """Kostenoptimiert: Forscher nacheinander, günstiges Modell zuerst; Stopp bei der ersten Behauptung, die den
     Code-Prüfer besteht und zur Antwort passt. Der Prüfer garantiert die Wahrheit, also reicht eine geprüfte Behauptung."""
     lab = Lab(domain); D = lab.domain; t0 = time.time(); traces = []; checks = {}; full = {}
+    stufen = stufen or getattr(D, "kaskade", None) or KASKADE                # Domain.kaskade: eigene Personas/Modelle je Stufe
+    staerkung = getattr(D, "staerkung", 2) if staerkung is None else staerkung
     frage_akt, cegis = frage, []                                   # CEGIS: Vermutung v1 -> Gegenbeispiel -> v2 ... (höchstens 3 Verfeinerungen)
     for strategie, model in stufen:
         try: tr = forscher(kontext, frage_akt, strategie, lab, f"K{salt}-{model}" + (f"-v{len(cegis) + 1}" if cegis else ""), model=model)

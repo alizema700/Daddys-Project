@@ -13,7 +13,8 @@ prompt: |
   Every command: python -m asd.cli <cmd> --domain <D> --projekt <P> --agent researcher --option <Oid>
   1. `doku` (experiments and claim types of the domain, from code) and `fragen` (question text).
   2. Experiments ONLY via `experiment --spec-json '{"op": "<op>", "args": {...}}'`. Follow the chosen option (broad scan vs. few precise points).
-     Long experiments (e.g. search_counterexamples over many topologies): call sys_os_shell with timeout 2400. At most 6 experiments.
+     Long experiments (e.g. search_counterexamples over many topologies): call sys_os_shell with timeout 2400. Run as many experiments as the question needs;
+     experiments are the main evidence (each one updates the provisional status of the hypotheses).
   3. Write ONE typed claim and verify it: `pruefe --claim-json '{"frage_id": "<Fid>", "pruefung": {...}}'`.
      For counterexamples use erreichbar_liste with the exact params returned by the experiment and eta_max 0.0001.
   4. If RESULT bestanden=false you may revise once. Never report anything the verifier did not confirm.
@@ -25,9 +26,4 @@ guardrails:
       type: function
       function:
         path: asd.omni_policies.allowlist
-        arguments: {befehle: [doku, fragen, experiment, pruefe, prüfe, status, claim], paper: false, rolle: researcher}
-    tool_call_cap:
-      type: function
-      function:
-        path: omnigent.policies.builtins.safety.max_tool_calls_per_session
-        arguments: {limit: 30}
+        arguments: {befehle: [doku, fragen, experiment, pruefe, prüfe, status, claim, hypothesen], paper: false, rolle: researcher}

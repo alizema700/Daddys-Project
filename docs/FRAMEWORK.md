@@ -44,6 +44,8 @@ PAPER (asd/paper.py): Halluzinations-Gate (jede Zahl muss in einer zitierten, ge
 | `asd/novelty.py` | Neuheitsprüfung je Claim mit Wortzitat-Nachweis | nein |
 | `asd/domains/experimental.py` | Basisklasse für Nasslabor-Domänen: Versuchsaufträge, statistischer Prüfer | nein |
 | `asd/stats.py`, `prereg.md` | Permutationstest, Bootstrap, Benjamini-Hochberg, Präregistrierung | nein |
+| `asd/hypothesen.py` | Hypothesen mit vorläufigem Status aus Experimenten, Richtung (testen/beweisen/entscheiden/verfeinern) | nein |
+| `asd/konsistenz.py` | Widersprüche zwischen bestätigten Claims, Hypothesen gegen Prüfer, Neu-Nachrechnung | nein |
 
 Beispiel-Domänen: `lattice_domain.py` (numerische Prüfer, Suleman 2026) und `proofreading_domain.py` (exakte Zertifikate in
 rationaler Arithmetik plus rigorose Intervalle).
@@ -104,13 +106,51 @@ Damit jeder ein hochwertiges Ergebnis bekommt, sind die Phasen nicht nur Text, s
 `asd.lab_loop` verweigert den Start ohne Phasen 1-4, `asd.paper` ohne 1-6. `--ohne-gates` umgeht das nur mit Eintrag als
 ABWEICHUNG in `decisions.md`.
 
+## 2e. Hypothesen mit vorläufigem Status (Experimente steuern die Richtung)
+
+Menschen ("we postulate") oder Agenten stellen Hypothesen mit **maschinenprüfbaren Vorhersagen** auf (`asd/hypothesen.py`):
+`{"text", "frage"?, "vorhersagen": [{"op", "wenn"?, "feld", "relation", "wert"}], "pruefung"?: <Claim, der sie zertifizieren würde>}`.
+- Jedes Experiment (Labor-Runde oder `asd.cli experiment`) wird per Code gegen alle Vorhersagen ausgewertet (+1 stützend, −1 widersprechend;
+  Toleranz für "≈" fest im Code). Neue Hypothesen werden sofort gegen **alle bisher protokollierten** Experimente ausgewertet.
+- Vorläufiger Status: offen → schwach_gestuetzt → vorlaeufig_gestuetzt; umstritten; vorlaeufig_widerlegt (Falsifikation zählt dreifach).
+  Er ist nur Steuerung, nie ein Resultat. Endgültig: bestätigt (Prüfer bestätigt die Ziel-Prüfung) oder widerlegt (Prüfer-Gegenbeispiel).
+- **Richtung aus dem Status** (Code, nicht LLM): vorläufig gestützt → *beweisen* (Ziel-Prüfung direkt dem Prüfer vorlegen, rigoros/Lean),
+  umstritten → *entscheiden* (entscheidendes Experiment), vorläufig widerlegt → *verfeinern* (eingeschränkte Hypothese), offen → *testen*.
+  Menschliche Hypothesen haben Vorrang; nach 3 Runden ohne Statusänderung ruht eine Hypothese. Der Modus geht als Auftrag an die Forscher,
+  als Option an den Planer (`asd/planner.py`) und in `decisions.md` (HYPOTHESEN-STEUERUNG).
+- Ein Hypothesen-Agent (Domain.hypothesen_agent = True oder `ASD_HYPOTHESEN_AGENT=1`) schlägt nach jeder Runde neue Hypothesen vor und verfeinert
+  vorläufig widerlegte. Alles wird in `prereg.md` präregistriert (sha256), bevor es ausgewertet wird.
+```bash
+python -m asd.lab_loop --domain theophys --hypothesen meine_hypothesen.json        # eigene Hypothesen laden
+python -m asd.hypothesen add --projekt theophys --text "..." --vorhersagen-json '[...]' --pruefung-json '{...}'
+python -m asd.hypothesen list --projekt theophys                                     # Status, Evidenz, nächste Richtung
+python -m asd.cli hypothesen --domain theophys                                       # dasselbe für Agenten (Omnigent)
+```
+
+## 2f. Konsistenz, Lean, Experiment-Gewicht (generische Hooks)
+- `asd/konsistenz.py`: zwei bestätigte Claims, die laut `Domain.widerspricht` nicht beide gelten können, werden automatisch angefochten
+  (Wahrheitspflege über `asd/tms.py`); läuft nach jedem neuen Claim in Labor und `asd.cli pruefe`. `python -m asd.konsistenz <projekt> --recheck`
+  prüft zusätzlich Hypothesen gegen Claims und rechnet alle Claims neu nach.
+- `Domain.auto_verstaerkung(p)`: nach Bestätigung versucht der Prüfer automatisch eine stärkere Fassung (z. B. denselben Claim mit Lean-Beweis).
+- Experiment-Gewicht je Domäne: `max_ops`, `max_ops_folge`, `experiment_runden` (Forscher), `experiment_gewicht` (Planer), eigene Personas
+  `strategien`/`forscher_rolle`/`kaskade`. Standardwerte lassen alle Prompts unverändert (Cache und eingefrorene Benchmarks bleiben gültig).
+- Keine Budgetgrenzen mehr: `lab_loop --runden 0` (Standard) läuft bis zum inhaltlichen Abbruchkriterium, `run_forever --max-runden 0` (Standard)
+  bis publikationsreif; Omnigent ohne Kosten-, Tool-Aufruf- und Verifier-Budget. Der Scout behält 300 statt 150 Quellen.
+- Recherche optional mit INSPIRE-HEP (`Domain.recherche_inspire = True`), auch in der Neuheitsprüfung.
+
+## 2g. Domäne Theoretische Physik (`theophys`)
+`asd/domains/theophys_domain.py` mit Bausteinen in `asd/domains/theophys/`. 23 Prüfungstypen, 18 Experimente, Selbsttest mit 55 Fällen
+(inkl. Konventionsfehlern, Grenzfällen, Toleranz-Lockerung, Code-Injektion), alle Rechnungen mit hartem Zeitlimit im eigenen Prozess.
+Details und alle Stellschrauben: `docs/THEORETICAL_PHYSICS_TUNING.md`. Lean 4 (ohne Mathlib) über `elan` installieren, dann sind
+`beweis: "lean"`-Claims möglich (Stufe `proved_lean`; Aussage vom Code erzeugt, Taktik `decide`, Axiome geprüft).
+
 ## 2a. Recherche (Scout) im Detail
 
 `--recherche` startet die große Recherche, bevor das Labor forscht:
 - 40 LLM-Suchanfragen plus die Klassiker aus `recherche_klassiker` (gezielt nach Autor und Titel)
 - Abruf aus arXiv, Europe PMC und Crossref (DOI als Tool-Beleg), dazu eigene Dateien aus `literature/`
 - Zitationskette: die Referenzlisten der 15 relevantesten Paper werden über Crossref aufgelöst
-- Sichtung aller Treffer (Haiku), Extraktion aus den 150 relevantesten (Sonnet), jedes Wortzitat per Code im Abstract geprüft
+- Sichtung aller Treffer (Haiku), Extraktion aus den 300 relevantesten (Sonnet), jedes Wortzitat per Code im Abstract geprüft
 - Evidenzstatus je Befund (bewiesen / numerisch / experimentell / vermutet) → `research/kb/<domain>/known_results.md`
 - Leck-Filter: Quellen mit Wörtern aus `recherche_sperre` werden gesperrt (z. B. das Paper mit dem Antwortschlüssel)
 Ergebnis: `research/kb/<domain>/wissensstand.md`, `known_results.md`, `kb.json` (Korpus, Scores, alle Befunde). Die geprüften

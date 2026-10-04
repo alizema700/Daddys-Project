@@ -102,8 +102,8 @@ class Supervisor:
 
     def lauf(self):
         a = self.a; n = 1
-        self.log(f"Dauerbetrieb gestartet: Domäne {a.domain}, max. {a.max_runden} Zyklen à {a.runden_pro_zyklus} Laborrunden")
-        while n <= a.max_runden:
+        self.log(f"Dauerbetrieb gestartet: Domäne {a.domain}, {"unbegrenzt viele" if not a.max_runden else f"max. {a.max_runden}"} Zyklen à {a.runden_pro_zyklus} Laborrunden")
+        while not a.max_runden or n <= a.max_runden:
             try:
                 r = self.zyklus(n)
                 if r is None:                                   # Absturz: neu starten, Zyklus wiederholen
@@ -138,7 +138,7 @@ class Supervisor:
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--domain", required=True)
-    ap.add_argument("--max-runden", type=int, default=200, help="höchstens so viele Zyklen (Labor -> Paper -> Referee)")
+    ap.add_argument("--max-runden", type=int, default=0, help="höchstens so viele Zyklen (Labor -> Paper -> Referee); 0 = unbegrenzt (Standard)")
     ap.add_argument("--runden-pro-zyklus", type=int, default=5, help="Laborrunden je Zyklus")
     ap.add_argument("--fragen", default="", help="Startfragen (nur beim allerersten Zyklus eines leeren Projekts)")
     ap.add_argument("--autoren", default="Verifier-Gated Discovery Lab"); ap.add_argument("--affiliation", default="")

@@ -14,7 +14,7 @@ import argparse, json, os, time
 from .domains.base import get_domain
 from .llm import ask_json, COST_LOG, LLMError
 from .discovery import solve_cascade
-from . import selftest
+from . import selftest, hypothesen, konsistenz
 
 SYS = "Du bist {rolle} in einem automatisierten Forschungslabor. Antworte nur mit gültigem JSON."
 
@@ -37,7 +37,8 @@ def scout(P, D, log):
     ziel = getattr(D, "recherche_ziel", None) or D.kontext
     spec = {"ziel": ziel, "sperre": list(getattr(D, "recherche_sperre", [])), "klassiker": list(getattr(D, "recherche_klassiker", [])),
             "crossref": bool(getattr(D, "recherche_crossref", True))}
-    ok, st = research_run(f"{D.name}", n_queries=40, per_query=30, keep=150, kette=15, spec=spec, log=log)
+    if getattr(D, "recherche_inspire", False): spec["inspire"] = True
+    ok, st = research_run(f"{D.name}", n_queries=40, per_query=30, keep=300, kette=15, spec=spec, log=log)
     P.s["offen_lit"] = [{"text": f["aussage"], "zitat": f["zitat"], "quelle": f["quelle"]} for f in ok if f.get("typ") == "offene_frage"]
     P.s["wissen"] = [{"text": f["aussage"], "zitat": f["zitat"], "quelle": f["quelle"], "typ": f.get("typ"), "url": f.get("url"), "status": f.get("status")} for f in ok]
     P.append("decisions.md", f"| {now()} | SCOUT | {st['abgerufen']} Quellen, {st['gesperrt']} gesperrt, {st['verifiziert']} Befunde mit per Code bestätigtem Zitat | research/kb/{D.name}/wissensstand.md |")
@@ -51,7 +52,9 @@ def wissen_text(P, n=40):
     eig = "\n".join(f"- [{c['id']}] {c['text']} (geprüft: {c['grund'][:150]})" for c in P.s["claims"] if c["status"] == "bestätigt")
     wid = "\n".join(f"- {x}" if isinstance(x, str) else f"- [{x['frage_id']}] {x['frage']}: " + "; ".join(f"{g['stufe']}: {g['grund'][:100]}" for g in x["gruende"])
                      for x in P.s["widerlegt"][-10:])
-    return f"Literatur (Zitate per Code geprüft):\n{lit or '-'}\n\nEigene geprüfte Ergebnisse:\n{eig or '-'}\n\nNicht bestätigt / widerlegt:\n{wid or '-'}"
+    hyp = hypothesen.wissen_abschnitt(P.s)                    # nur vorhanden, wenn das Projekt Hypothesen hat
+    return (f"Literatur (Zitate per Code geprüft):\n{lit or '-'}\n\nEigene geprüfte Ergebnisse:\n{eig or '-'}\n\nNicht bestätigt / widerlegt:\n{wid or '-'}"
+            + (f"\n\n{hyp}" if hyp else ""))
 
 
 def faden_of(P, q):
@@ -161,13 +164,14 @@ def lernen(P, D, frage, res, runde, parent=None):
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--domain", required=True); ap.add_argument("--runden", type=int, default=4)
+    ap = argparse.ArgumentParser(); ap.add_argument("--domain", required=True); ap.add_argument("--runden", type=int, default=0, help="0 = unbegrenzt (Standard): Ende nur über --stopp-ohne-fortschritt oder keine offenen Fragen")
     ap.add_argument("--recherche", action="store_true"); ap.add_argument("--recherche-neu", action="store_true", help="Scout erneut ausführen")
     ap.add_argument("--fragen", default="", help="JSON-Datei mit Startfragen [{frage: ...}]")
     ap.add_argument("--gezielt", action="store_true", help="keine frei erzeugten Folgefragen (Workflow Phase 5)")
     ap.add_argument("--stopp-ohne-fortschritt", type=int, default=3, help="Abbruch nach so vielen Runden in Folge ohne neuen bestätigten Claim")
     ap.add_argument("--themenwechsel", action="store_true", help="statt Abbruch ohne Fortschritt: Integrator zum Themenwechsel zwingen (Dauerbetrieb)")
     ap.add_argument("--projekt", default="", help="Projektverzeichnis-Name (Standard: Domänenname)")
+    ap.add_argument("--hypothesen", default="", help="JSON-Datei mit eigenen Hypothesen [{text, vorhersagen, pruefung, frage}] (origin HUMAN-PROPOSED)")
     ap.add_argument("--ohne-gates", action="store_true", help="Phasen-Gates 1-4 übergehen (wird als Abweichung protokolliert)"); a = ap.parse_args()
     D = get_domain(a.domain); P = Project(a.projekt or a.domain); D.projekt = a.projekt or a.domain; log = lambda m: (print(m, flush=True), P.append("lab_report.md", f"- {now()} {m}"))
     if not P.s["runden"]: P.append("decisions.md", "| Zeit | Agent | Entscheidung | Beleg |\n|---|---|---|---|")
@@ -184,14 +188,22 @@ def main():
         for q in json.load(open(a.fragen)):
             qid = f"F{len(P.s['fragen']) + 1}"; q.update(id=qid, status="offen", quelle="lueckenkarte", faden_id=q.get("faden_id") or qid); P.s["fragen"].append(q)
         P.append("decisions.md", f"| {now()} | INTEGRATOR | Startfragen aus {a.fragen} geladen, übrige offene Fragen zurückgestellt | Workflow Phase 5 |")
-    if not any(q["status"] == "offen" for q in P.s["fragen"]) and not P.s.get("ausstehend"):   # nichts offen: neue Fragen erzeugen
+    if a.hypothesen:                                           # eigene Hypothesen: präregistrieren und sofort gegen alle bisherigen Experimente auswerten
+        for x in json.load(open(a.hypothesen)):
+            h = hypothesen.neu(P.s, x["text"], x.get("vorhersagen"), x.get("pruefung"), x.get("frage"), origin="HUMAN-PROPOSED", agent="mensch")
+            P.append("prereg.md", f"\n## Hypothese {h['id']} ({now()}, HUMAN-PROPOSED, vor ihrer Auswertung)\n- Aussage: {h['text']}\n"
+                                  f"- Vorhersagen: {json.dumps(h['vorhersagen'], ensure_ascii=False)}\n- Ziel-Prüfung: {json.dumps(h['pruefung'], ensure_ascii=False)}\n- sha256: {h['sha256']}")
+        hypothesen.bewerte_experimente(P.s, hypothesen.protokollierte_experimente(P.dir, P.s), quelle="nachträglich"); hypothesen.abgleich_claims(P.s)
+        log("Hypothesen geladen:\n" + hypothesen.tabelle(P.s))
+    if not any(q["status"] == "offen" for q in P.s["fragen"]) and not P.s.get("ausstehend") and not hypothesen.richtung(P.s):   # nichts offen: neue Fragen erzeugen
         integrator_fragen(P, D, salt=str(len(P.s["runden"])))
     if os.environ.get("ASD_FAULT_CRASH") == "ratelimit":       # nur Tests des Dauerbetriebs
         from .llm import RateLimitError; raise RateLimitError("SIMULIERT: usage limit reached (429), Test des Dauerbetriebs")
     if os.environ.get("ASD_FAULT_CRASH"): raise RuntimeError("SIMULIERT: künstlicher Absturz (Test des Dauerbetriebs)")
     P.save(); ohne = ohne_fortschritt(P)                      # aus state.json: überlebt Neustarts
     if getattr(D, "experimentell", False) and not ausstehende_auswerten(P, D, log): return
-    for _ in range(a.runden):
+    import itertools
+    for _ in (range(a.runden) if a.runden else itertools.count()):
         runde = len(P.s["runden"]) + 1
         if ohne >= a.stopp_ohne_fortschritt and a.themenwechsel:
             themenwechsel(P, D, runde, ohne, log); ohne = 0
@@ -200,7 +212,8 @@ def main():
             log(msg); P.append("decisions.md", f"| {now()} | INTEGRATOR | {msg} | inhaltliches Abbruchkriterium |"); break
         n_vorher = sum(c["status"] == "bestätigt" for c in P.s["claims"])
         weiter = runde_ausfuehren(P, D, a, runde, log)
-        ohne = 0 if sum(c["status"] == "bestätigt" for c in P.s["claims"]) > n_vorher else ohne + 1
+        fortschritt = sum(c["status"] == "bestätigt" for c in P.s["claims"]) > n_vorher or bool(P.s["runden"] and P.s["runden"][-1].get("hypothesen_fortschritt"))
+        ohne = 0 if fortschritt else ohne + 1
         if not weiter: break
     log(f"Fertig: {len(P.s['claims'])} geprüfte Aussagen, {len(P.s['widerlegt'])} negative Ergebnisse")
 
@@ -210,7 +223,7 @@ def ohne_fortschritt(P):
     n = 0
     for r in reversed(P.s["runden"]):
         if r.get("status") == "wartet_auf_daten": continue
-        if r.get("status") == "beantwortet" or r.get("themenwechsel"): break
+        if r.get("status") == "beantwortet" or r.get("themenwechsel") or r.get("hypothesen_fortschritt"): break
         n += 1
     return n
 
@@ -228,8 +241,8 @@ def themenwechsel(P, D, runde, ohne, log):
     P.s["runden"].append({"runde": None, "frage": None, "status": "themenwechsel", "themenwechsel": True, "red_team": [], "sek": 0}); P.save()
 
 
-def claim_eintragen(P, D, q_frage, p, grund, runde, rt=None):
-    cid = f"{D.name}-R{runde}"; rt = rt or []
+def claim_eintragen(P, D, q_frage, p, grund, runde, rt=None, cid=None):
+    cid = cid or f"{D.name}-R{runde}"; rt = rt or []
     angefochten = [x for x in rt if x.get("widerspruch")]
     P.s["claims"].append({"id": cid, "frage": q_frage, "text": D.describe(p), "pruefung": p, "grund": grund, "level": D.level(p),
                           "status": "angefochten" if angefochten else "bestätigt", "red_team": rt, "runde": runde,
@@ -238,6 +251,7 @@ def claim_eintragen(P, D, q_frage, p, grund, runde, rt=None):
         from .novelty import check_claim
         try: P.s["claims"][-1]["neuheit"] = check_claim(D, P.s["claims"][-1], salt=cid)
         except Exception as e: P.s["claims"][-1]["neuheit"] = {"status": "nicht_geprueft", "grund": str(e)[:120]}
+        konsistenz.neuer_claim(P.s, D, cid)
     return P.s["claims"][-1]
 
 
@@ -266,20 +280,35 @@ def ausstehende_auswerten(P, D, log):
 
 def runde_ausfuehren(P, D, a, runde, log):
     if True:
-        try:
-            plan = integrator_plan(P, D, runde)
-            if not plan and not a.gezielt:                     # alles beantwortet: einmal neue Fragen erzeugen
-                integrator_fragen(P, D, salt=f"r{runde}"); plan = integrator_plan(P, D, runde)
-        except LLMError as e: log(f"Integrator-Fehler: {e}"); return False
-        if not plan: log("Keine offenen Fragen mehr."); return False
-        q, pr = plan
+        ri = hypothesen.richtung(P.s) if P.s.get("hypothesen") else None          # Richtung aus dem (vorläufigen) Hypothesenstatus
+        h_akt = next((h for h in P.s["hypothesen"] if h["id"] == ri["hypothese"]), None) if ri else None
+        if h_akt is not None:
+            q = hypothesen.frage_fuer(P.s, h_akt, faden_of=lambda x: faden_of(P, x))
+            pr = {"begruendung": f"Hypothesen-Steuerung: {ri['grund']}", "erfolg": "Statusänderung der Hypothese oder geprüfter Claim",
+                  "abbruch": f"{hypothesen.MAX_STILLSTAND} Runden ohne Statusänderung", "erwartung": f"Modus {ri['modus']}"}
+            P.append("decisions.md", f"| {now()} | HYPOTHESEN-STEUERUNG | Runde {runde}: {ri['hypothese']} ({ri['status']}) -> {ri['modus']} an [{q['id']}] | {ri['grund']} |")
+        else:
+            try:
+                plan = integrator_plan(P, D, runde)
+                if not plan and not a.gezielt:                 # alles beantwortet: einmal neue Fragen erzeugen
+                    integrator_fragen(P, D, salt=f"r{runde}"); plan = integrator_plan(P, D, runde)
+            except LLMError as e: log(f"Integrator-Fehler: {e}"); return False
+            if not plan: log("Keine offenen Fragen mehr."); return False
+            q, pr = plan
         P.append("prereg.md", f"\n## Runde {runde} ({now()}), vor dem Experiment\n- Frage [{q['id']}]: {q['frage']}\n- Begründung: {pr.get('begruendung')}\n"
                               f"- Erfolg: {pr.get('erfolg')}\n- Abbruch: {pr.get('abbruch')}\n- Erwartung: {pr.get('erwartung')}")
         P.append("decisions.md", f"| {now()} | INTEGRATOR | Runde {runde}: [{q['id']}] {q['frage'][:120]} | {str(pr.get('begruendung'))[:160]} |")
         log(f"Runde {runde}: {q['frage']}")
         exp = getattr(D, "experimentell", False)
-        res = solve_cascade(D.kontext + "\n\n" + wissen_text(P), q["frage"], salt=f"{D.name}-{runde}", domain=D,
+        frage_text = q["frage"] + ("\n\n" + hypothesen.auftrag(h_akt, ri["modus"]) if h_akt is not None else "")
+        res = solve_cascade(D.kontext + "\n\n" + wissen_text(P), frage_text, salt=f"{D.name}-{runde}", domain=D,
                             **({"stufen": (("sparsam", "sonnet"),), "staerkung": 0} if exp else {}))
+        h_aend = []
+        if P.s.get("hypothesen"):                              # Experimente dieser Runde -> vorläufiger Hypothesenstatus
+            h_aend = hypothesen.bewerte_experimente(P.s, res.get("experimente", []), quelle=f"runde{runde}")
+            for hid, alt, neu_ in h_aend:
+                log(f"  Hypothese {hid}: {alt} -> {neu_} (vorläufig, aus Experimenten)")
+                P.append("decisions.md", f"| {now()} | HYPOTHESEN | {hid}: {alt} -> {neu_} | Experimente der Runde {runde} (Code-Auswertung der Vorhersagen) |")
         q["status"] = "beantwortet" if res["level"].startswith("computed") else "ungeprüft"
         for st in res.get("cegis") or []:                         # CEGIS-Zeitleiste: Vermutung -> Gegenbeispiel -> verfeinerte Vermutung
             if st.get("bestanden"): log(f"  CEGIS v{st['v']} ({st['stufe']}): verfeinerte Vermutung BESTANDEN")
@@ -318,6 +347,7 @@ def runde_ausfuehren(P, D, a, runde, log):
                 except Exception as e: P.s["claims"][-1]["neuheit"] = {"status": "nicht_geprueft", "grund": str(e)[:120]}
                 log(f"  Neuheit: {P.s['claims'][-1]['neuheit'].get('status')}")
             log(f"  geprüft ({D.level(p)}): {D.describe(p)[:160]} | Red-Team: {len(rt)} Gegenprüfungen, {sum(x['bestanden'] for x in rt)} bestanden, {len(angefochten)} logische Widersprüche")
+            nach_claim(P, D, cid, log)
         else:
             gruende = []
             for tr in res.get("forscher", []):
@@ -334,8 +364,89 @@ def runde_ausfuehren(P, D, a, runde, log):
         P.s["runden"].append({"runde": runde, "frage": q["id"], "status": q["status"], "red_team": rt, "sek": res["sek"], "faden_id": q.get("faden_id"),
                               "cegis": {"verfeinerungen": sum(1 for x in cg if not x.get("bestanden")), "verfeinert_bestanden": bool(cg) and bool(cg[-1].get("bestanden")),
                                         "schritte": cg}})
+        if P.s.get("hypothesen"):
+            vorher = [h.get("status") for h in P.s["hypothesen"]]
+            hypothesen_nach_runde(P, D, res, runde, log, h_akt, ri)
+            if h_aend or vorher != [h.get("status") for h in P.s["hypothesen"]][:len(vorher)]:
+                P.s["runden"][-1]["hypothesen_fortschritt"] = True     # Statusänderung einer Hypothese zählt als Fortschritt
         COST_LOG.clear(); P.save()
         return True
+
+
+def nach_claim(P, D, cid, log):
+    """Nach einem neuen Claim: automatische Verstärkung durch den Prüfer (z. B. derselbe Claim mit Lean-Beweis, Domain.auto_verstaerkung)
+    und Konsistenz gegen alle bestätigten Claims (asd/konsistenz.py). Domänen ohne diese Hooks: keine Änderung."""
+    c = next((x for x in P.s["claims"] if x["id"] == cid), None)
+    if c is None: return
+    if c.get("status") == "bestätigt" and hasattr(D, "auto_verstaerkung"):
+        for p2 in D.auto_verstaerkung(c["pruefung"]) or []:
+            try: ok2, why2, _ = D.check(p2)
+            except Exception as e: ok2, why2 = False, f"nicht ausführbar: {type(e).__name__}"
+            if ok2:
+                c.update(verstaerkt_von=c["pruefung"], pruefung=p2, level=D.level(p2), text=D.describe(p2), grund=why2)
+                log(f"  verstärkt -> {c['level']}: {str(why2)[:160]}")
+                P.append("decisions.md", f"| {now()} | PRÜFER | {cid} automatisch verstärkt zu {c['level']} | {str(why2)[:160]} |"); break
+            c.setdefault("verstaerkung_versucht", []).append({"pruefung": p2, "grund": str(why2)[:200]})
+    for a_, b_, betr in konsistenz.neuer_claim(P.s, D, cid):
+        log(f"  INKONSISTENZ: {a_} widerspricht {b_}; beide angefochten, abhängig ungültig: {betr}")
+        P.append("decisions.md", f"| {now()} | KONSISTENZ | {a_} ⟂ {b_}: beide angefochten (Prüfer- oder Modellfehler, Selbsttest ergänzen) | abhängig ungültig: {betr} |")
+
+
+def hypothesen_nach_runde(P, D, res, runde, log, h_akt=None, ri=None):
+    """Endgültige Entscheidungen (Prüfer), Stillstandszählung und neue/verfeinerte Hypothesen des Hypothesen-Agenten."""
+    for hid, cid in hypothesen.abgleich_claims(P.s):
+        log(f"  Hypothese {hid}: BESTÄTIGT durch {cid} (Prüfer)"); P.append("decisions.md", f"| {now()} | PRÜFER | Hypothese {hid} bestätigt | Claim {cid} |")
+    if h_akt is not None and ri and ri["modus"] == "beweisen" and h_akt.get("status") == "offen" and h_akt.get("pruefung"):
+        ok, why, gb = hypothesen.verifizieren(D, h_akt)               # Ziel-Prüfung direkt dem Prüfer vorlegen
+        if ok:
+            p = h_akt["pruefung"]; cid = f"{D.name}-R{runde}H"
+            rt = red_team(P, D, h_akt["text"], {"antwort": h_akt["text"], "pruefung": p}, f"{runde}H")
+            for x in rt: x["widerspruch"] = bool(x["bestanden"] and D.widerspricht(p, x["pruefung"]))
+            c = claim_eintragen(P, D, f"Hypothese {h_akt['id']}: {h_akt['text']}", p, why, runde, rt, cid=cid); c["hypothese"] = h_akt["id"]
+            nach_claim(P, D, cid, log); hypothesen.abgleich_claims(P.s)
+            log(f"  Hypothese {h_akt['id']}: Ziel-Prüfung vom Prüfer bestätigt -> {cid} ({c['status']})")
+        else:
+            log(f"  Hypothese {h_akt['id']}: Ziel-Prüfung nicht bestanden{' (Gegenbeispiel -> endgültig widerlegt)' if gb else ''}: {str(why)[:160]}")
+            if gb: P.append("decisions.md", f"| {now()} | PRÜFER | Hypothese {h_akt['id']} WIDERLEGT (Gegenbeispiel) | {json.dumps(gb, ensure_ascii=False, default=str)[:200]} |")
+    if h_akt is not None and ri: hypothesen.runde_abschliessen(h_akt, runde, ri["status"])
+    if getattr(D, "hypothesen_agent", False) or os.environ.get("ASD_HYPOTHESEN_AGENT") == "1":
+        hypothesen_agent(P, D, res, runde, log)
+
+
+MAX_AKTIV_AGENT = 6                                            # Fokus: so viele aktive Agenten-Hypothesen gleichzeitig
+
+
+def hypothesen_agent(P, D, res, runde, log):
+    """Ein LLM schlägt aus den Experimenten der Runde Hypothesen mit maschinenprüfbaren Vorhersagen vor und verfeinert vorläufig widerlegte.
+    Neue Hypothesen werden sofort gegen ALLE protokollierten Experimente ausgewertet (vorläufiger Status ohne neues Experiment)."""
+    aktiv_agent = [h for h in P.s.get("hypothesen", []) if hypothesen.aktiv(h) and not str(h.get("origin", "")).startswith("HUMAN")]
+    wid = [h for h in P.s.get("hypothesen", []) if hypothesen.aktiv(h) and (h.get("vorlaeufig") or {}).get("status") == "vorlaeufig_widerlegt" and not h.get("verfeinert_durch")]
+    if len(aktiv_agent) >= MAX_AKTIV_AGENT and not wid: return
+    ex = "\n".join(f"- {e['op']} {json.dumps(e['args'], ensure_ascii=False)[:200]} -> {json.dumps(e['ergebnis'], ensure_ascii=False, default=str)[:400]}" for e in res.get("experimente", [])[-12:])
+    wtxt = "\n".join(f"- [{h['id']}] {h['text']} | widersprechend: " + "; ".join(f"{e['op']} {json.dumps(e['args'], ensure_ascii=False)[:100]} -> {e['ist']} (vorhergesagt {e['relation']} {e['soll']})"
+                                                                      for e in h.get("evidenz", []) if e["ergebnis"] < 0)[:600] for h in wid)
+    try:
+        r = ask_json(f"{D.kontext}\n\n{wissen_text(P)}\n\nEXPERIMENTE DIESER RUNDE:\n{ex or '-'}\n\nVORLÄUFIG WIDERLEGTE HYPOTHESEN:\n{wtxt or '-'}\n\n{D.primitive_doc}\n\n{D.claim_doc}\n\n"
+                     "Stelle bis zu 2 Hypothesen auf, die über die Experimente hinausgehen (Verallgemeinerung, Gesetzmäßigkeit, Grenzfall), oder verfeinere eine vorläufig "
+                     "widerlegte (\"verfeinert_aus\": id), sodass sie die widersprechenden Fälle ausschließt. Jede Hypothese braucht maschinenprüfbare Vorhersagen über "
+                     "Experimente (op, optional wenn = Teilmenge der Argumente, feld = Pfad im Ergebnis-JSON, relation in < <= > >= == != ≈ in enthaelt, wert) und, wenn möglich, "
+                     "eine Ziel-Prüfung (ein Claim der Prüfungstypen oben), die sie zertifizieren würde. Keine Toleranzfelder. "
+                     'JSON: {"hypothesen": [{"text": "...", "verfeinert_aus": "", "vorhersagen": [{"op": "...", "wenn": {}, "feld": "...", "relation": "<=", "wert": 0}], "pruefung": null}]}',
+                     SYS.format(rolle="der Hypothesen-Agent"), salt=f"hypothesen-{runde}")
+    except (LLMError, json.JSONDecodeError) as e: log(f"  Hypothesen-Agent: {e}"); return
+    alle = hypothesen.protokollierte_experimente(P.dir, P.s) + list(res.get("experimente", []))
+    for x in (r.get("hypothesen") or [])[:2]:
+        try:
+            alt = next((h for h in P.s["hypothesen"] if h["id"] == x.get("verfeinert_aus")), None)
+            h = hypothesen.neu(P.s, x.get("text"), x.get("vorhersagen"), x.get("pruefung") if isinstance(x.get("pruefung"), dict) else None,
+                               frage=(alt or {}).get("frage"), origin="AGENT:hypothesen-agent", agent="hypothesen-agent", verfeinert_aus=alt and alt["id"])
+        except (ValueError, TypeError) as e: log(f"  Hypothese verworfen (Format): {str(e)[:160]}"); continue
+        if alt: alt["verfeinert_durch"] = h["id"]
+        hypothesen.bewerte_experimente(P.s, alle, quelle="nachträglich")
+        P.append("prereg.md", f"\n## Hypothese {h['id']} ({now()}, agent-generiert{', verfeinert aus ' + alt['id'] if alt else ''}, vor ihrer Auswertung)\n- Aussage: {h['text']}\n"
+                              f"- Vorhersagen: {json.dumps(h['vorhersagen'], ensure_ascii=False)}\n- Ziel-Prüfung: {json.dumps(h['pruefung'], ensure_ascii=False)}\n- sha256: {h['sha256']}")
+        log(f"  neue Hypothese {h['id']}{' (verfeinert aus ' + alt['id'] + ')' if alt else ''}: {h['text'][:140]} | vorläufig {h['vorlaeufig']['status']}")
+        P.append("decisions.md", f"| {now()} | HYPOTHESEN-AGENT | neue Hypothese {h['id']}{' (verfeinert aus ' + alt['id'] + ')' if alt else ''}: {h['text'][:100]} | vorläufig {h['vorlaeufig']['status']} |")
 
 
 if __name__ == "__main__":

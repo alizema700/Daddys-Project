@@ -5,7 +5,11 @@ Forscher), max_ops. Der Gewinn ist eine einfache, nachvollziehbare Heuristik aus
   - viele Ablehnungen im Faden  -> breiter Scan lohnt (man weiß zu wenig)
   - bestätigte Claims im Faden  -> Verallgemeinerung / Grenzfall lohnt (Tiefe statt Breite)
   - noch nichts im Faden        -> tiefe, gezielte Rechnung an wenigen Punkten ist günstig
-Domänen können `optionen(frage, state)` selbst definieren; sonst gilt dieser generische Planer."""
+  - Hypothesen zur Frage        -> Option nach ihrem VORLÄUFIGEN Status (asd/hypothesen.py): testen / beweisen / entscheiden / verfeinern
+Domänen können `optionen(frage, state)` selbst definieren (sie können generische_optionen() erweitern); `experiment_gewicht`
+(Standard 1.0) skaliert den Gewinn experimentlastiger Optionen. Ohne Hypothesen und mit Gewicht 1.0 ist das Verhalten unverändert."""
+
+EXPERIMENTLASTIG = ("breiter_scan", "hypothese_testen", "hypothese_entscheiden", "groesse_erhoehen")
 
 
 def _faden_stats(state, frage):
@@ -17,10 +21,7 @@ def _faden_stats(state, frage):
     return fid, best, abgelehnt
 
 
-def options(domain, frage, state):
-    if hasattr(domain, "optionen"):
-        o = domain.optionen(frage, state)
-        if o and len(o) >= 2: return o
+def generische_optionen(frage, state):
     fid, best, abgelehnt = _faden_stats(state, frage)
     n_b, n_a = len(best), len(abgelehnt)
     unsicher = n_a / (n_a + n_b + 1)                       # Anteil der Ablehnungen im Faden
@@ -47,4 +48,32 @@ def options(domain, frage, state):
                   "kosten": 2, "erwarteter_gewinn": round(0.4 + 0.05 * min(n_b, 3), 3), "max_ops": 8,
                   "vorgehen": f"Suche gezielt den Rand der Gültigkeit von [{best[-1]['id']}] (extreme Parameter, Vorzeichenwechsel) und prüfe ihn."})
     for o in O: o["faden_id"] = fid; o["frage_id"] = frage.get("id")
+    return O
+
+
+GEWINN_HYPOTHESE = {"beweisen": 0.9, "entscheiden": 0.8, "verfeinern": 0.75, "testen": 0.7}
+
+
+def hypothesen_optionen(frage, state, start=1):
+    """Eine Option je Frage, wenn eine aktive Hypothese an ihr hängt; Art und Gewinn folgen ihrem vorläufigen Status."""
+    from . import hypothesen
+    r = hypothesen.richtung(state, nur_frage=frage.get("id"))
+    if not r: return []
+    h = next(x for x in state["hypothesen"] if x["id"] == r["hypothese"])
+    return [{"id": f"O{start}", "art": f"hypothese_{r['modus']}", "hypothese": h["id"], "beschreibung": f"{r['grund']}.",
+             "kosten": 1 if r["modus"] == "beweisen" else 2, "erwarteter_gewinn": GEWINN_HYPOTHESE[r["modus"]], "max_ops": 16 if r["modus"] != "beweisen" else 6,
+             "vorgehen": hypothesen.auftrag(h, r["modus"]), "faden_id": frage.get("faden_id") or frage.get("id"), "frage_id": frage.get("id")}]
+
+
+def options(domain, frage, state):
+    O = None
+    if hasattr(domain, "optionen"):
+        o = domain.optionen(frage, state)
+        if o and len(o) >= 2: O = o
+    O = O or generische_optionen(frage, state)
+    O = O + hypothesen_optionen(frage, state, start=len(O) + 1)
+    g = float(getattr(domain, "experiment_gewicht", 1.0))
+    if g != 1.0:
+        for o in O:
+            if o["art"] in EXPERIMENTLASTIG: o["erwarteter_gewinn"] = round(min(1.0, o["erwarteter_gewinn"] * g), 3)
     return sorted(O, key=lambda o: -o["erwarteter_gewinn"] / o["kosten"] ** 0.5)

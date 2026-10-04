@@ -11,7 +11,7 @@ import json, re, sys, time
 
 def check_claim(D, claim, salt=""):
     from .llm import ask_json
-    from .research import search_arxiv, search_europepmc, search_crossref, quote_ok
+    from .research import search_arxiv, search_europepmc, search_crossref, search_inspire, quote_ok
     try: aussage = D.describe(claim["pruefung"], lang="en")
     except TypeError: aussage = D.describe(claim["pruefung"])
     q = ask_json(f"Research field: {D.kontext}\n\nVerified result: {aussage}\n\nFormulate 3-5 short, specific English search queries (3-7 words) "
@@ -20,7 +20,7 @@ def check_claim(D, claim, salt=""):
     docs, treffer = {}, {}
     for qq in q:
         n = 0
-        for src in (search_arxiv, search_europepmc, search_crossref):
+        for src in (search_arxiv, search_europepmc, search_crossref) + ((search_inspire,) if getattr(D, "recherche_inspire", False) else ()):
             try:
                 for d in src(qq, 8):
                     if d.get("abstract") and len(d["abstract"]) > 150: docs.setdefault(d["id"], d); n += 1

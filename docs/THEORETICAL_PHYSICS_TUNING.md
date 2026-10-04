@@ -28,7 +28,7 @@ taken once per domain and covered by the self-test, not a knob to turn during a 
 | A12 | Verifier budget per Omnigent run | `state.json budget_verifier`, `omni_setup --budget-verifier` | 40 | run length |
 | A13 | Omnigent limits | `omni/config.yaml` | 40 USD, ASK at 10/20, 3 dispatches/turn, 300 tool calls, researcher 30 | cost vs. autonomy |
 | A14 | Models per Omnigent role | `omni/agents/*/config.yaml` | lead opus, red team opus, scout/learner haiku, rest sonnet | independence of red team vs. cost |
-| A15 | Scout size | `research.run(n_queries=40, per_query=30, keep=150, kette=15)` | as given | coverage vs. time |
+| A15 | Scout size | `research.run(n_queries=40, per_query=30, keep=300, kette=15)` | keep doubled 150 → 300 | coverage vs. time |
 | A16 | Phase-1 thresholds | `asd/phases.py SCHWELLEN` | 1000 / 100 / 60 / 8 classics | literature depth required before the lab starts |
 | A17 | Literature sources | `research.py` | arXiv, Europe PMC, Crossref, `literature/` | **INSPIRE-HEP is missing** (central for hep-th/hep-ph/gr-qc) |
 | A18 | Leak guard | `Domain.recherche_sperre`, `omni/leak_guard.json`, CEL `leak_guard` | Suleman terms + paths | contamination control |
@@ -191,3 +191,51 @@ experiment and per check, parallelism, caching of expensive results, hardware li
 
 Speed metrics may only be optimised over agent-side knobs (A1–A15, B2, B10, B11). The verifier side (B3–B8) is optimised only
 for correctness and rigour, never for pass rate.
+
+---
+
+## D. Implemented on this branch
+
+| Item | Where | Setting now |
+|---|---|---|
+| Budget limits removed | `omni/config.yaml` (no `cost_budget`, no `max_tool_calls`), researcher (no `tool_call_cap`, no "at most 6 experiments"), `asd.cli status`, `asd.omni_setup --budget-verifier 0`, `lab_loop --runden 0`, `run_forever --max-runden 0` | unlimited by default; runs end on the content criteria (no progress, publishable, no open questions). Loop guard and the 3-dispatch concurrency bound stay (safety, not budget) |
+| Papers kept by the scout | `lab_loop.scout`, `docs/WORKFLOW_PROMPT.md` | 300 (was 150) |
+| Experiment weight (A3, B10, B11) | `Domain.max_ops / max_ops_folge / experiment_runden / experiment_gewicht` | theophys: 16 first-plan experiments, 12 per follow-up, 2 extra experiment rounds, ×1.5 gain for experiment-heavy planner options. Other domains unchanged |
+| Hypotheses with provisional status → direction | `asd/hypothesen.py`, `lab_loop`, `asd.cli hypothese/hypothesen/experiment`, `planner.hypothesen_optionen` | see FRAMEWORK.md §2e |
+| Consistency | `asd/konsistenz.py` (automatic after every new claim; CLI with `--recheck`) | contradicting confirmed claims are contested |
+| Lean | `asd/domains/theophys/lean.py`; `Domain.auto_verstaerkung` | Lean 4 core, `decide`, axioms audited; auto-upgrade to `proved_lean` after confirmation |
+| INSPIRE-HEP (A17) | `research.search_inspire`, novelty check | on for theophys |
+| Physics personas (B10) | `TheoPhys.strategien/kaskade` | numeriker/haiku → symmetriker/haiku → exakt/sonnet → skeptiker/sonnet → stoerungstheoretiker/sonnet → skalierer/opus |
+
+### Claim types of `theophys` (B3) and how they are verified (B4)
+
+| Type | Verifier | Level |
+|---|---|---|
+| `identitaet`, `grenzwert`, `reihenkoeffizient` | SymPy, falsification at rational points | computed_rigorous |
+| `schranke` | random sampling + best-first interval branch-and-bound (arb, 128 bit, endpoint arithmetic), certified counterexample | computed_rigorous |
+| `dimension` | exact dimension algebra (M, L, T, I, Θ) | computed_rigorous |
+| `spektrum`, `gap`, `entartung` | exact Pauli algebra → integer matrix → FLINT charpoly → rigorous root isolation (dim ≤ 400); exact values via minimal-polynomial divisibility; above 400: dense + Lanczos | computed_rigorous / observed |
+| `kommutator` | exact Pauli algebra with Gaussian rationals | computed_rigorous |
+| `ising_zustandsdichte`, `ising_grundzustand` [lean], `ising_freie_energie` | integer transfer matrix (Σg = 2^N checked), arb | computed_rigorous / proved_lean |
+| `feldgleichung`, `kruemmungsinvariante` | symbolic Christoffel/Riemann/Ricci/Einstein/Kretschmann | computed_rigorous |
+| `darstellung`, `beta_koeffizient` [lean], `asymptotische_freiheit` [lean], `banks_zaks` [lean], `anomaliefrei` [lean] | exact SU(N) group theory, Machacek–Vaughn two-loop (no Yukawa/quartic) | computed_rigorous / proved_lean |
+| `klassische_schranke` [lean], `quantenwert` | enumeration of deterministic strategies; exact singlet value | computed_rigorous / proved_lean |
+| `qm_eigenwert` | finite differences at 4000 and 8000 points + Richardson, rel. tol. 1e-6 | observed |
+
+Fixed verifier constants (B5): eigenvalue interval width ≤ 1e-6 relative, ln Z/N width ≤ 1e-10 relative, 20 000 B&B boxes, exact spectra up to
+dimension 400, Lean Ising enumeration up to 12 spins, time limit 300 s per check/experiment (`THEOPHYS_ZEIT`, `THEOPHYS_ZEIT_EXPERIMENT`).
+
+### Verified so far
+- Self-test 55/55 (23 true anchors such as Majumdar–Ghosh E0 = −3 (twofold), Schwarzschild vacuum and Kretschmann 48M²/r⁶, QCD b0 = 7, b1 = 26
+  at nf = 6, SM anomaly freedom, CHSH = 2 and −2√2; 26 false statements; 6 Lean cases).
+- The LLM prompts for the existing domains (lattice, proofreading) are byte-identical to the pre-change code (42 calls compared), so caches,
+  replays and the frozen H7/H8 benchmark stay valid.
+- End-to-end lab round with a scripted LLM: a human hypothesis becomes provisionally supported from three experiments, the lab switches to
+  "beweisen", the verifier confirms the target claim, the hypothesis is final "bestätigt" (`tests/test_theophys.py`).
+
+### Not done yet (suggestions)
+- Physics-specific figures (`figures()`: spectra vs N, phase diagrams) — needs matplotlib in the environment.
+- MCP server (`probatum`) does not list `theophys` yet (needs schemas in `asd/mcp_schemas.py`).
+- Novelty check is still not run by `asd.cli pruefe` (Omnigent path), only by the lab loop.
+- Mathlib-based Lean templates (real analysis, inequalities over ℝ) — current Lean templates are integer/finite only.
+- Lanczos/DMRG with rigorous error bounds (Temple/Kato) for dimensions above 400.

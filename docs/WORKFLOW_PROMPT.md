@@ -36,7 +36,7 @@ G9. Wenn ein Abnahmekriterium nicht erfüllt ist: nicht weitermachen, Ursache be
    - `recherche_crossref = True`.
    - `recherche_sperre`: Quellen, die einen Antwortschlüssel enthalten.
 3. Starte nur den Scout:
-   `python -c "from asd.research import run; from asd.domains.base import get_domain as g; d=g('<name>'); run('<name>', n_queries=40, per_query=30, keep=150, kette=15, spec={'ziel': d.recherche_ziel, 'sperre': d.recherche_sperre, 'klassiker': d.recherche_klassiker, 'crossref': True})"`
+   `python -c "from asd.research import run; from asd.domains.base import get_domain as g; d=g('<name>'); run('<name>', n_queries=40, per_query=30, keep=300, kette=15, spec={'ziel': d.recherche_ziel, 'sperre': d.recherche_sperre, 'klassiker': d.recherche_klassiker, 'crossref': True})"`
 - **Abnahme (alle Punkte müssen erfüllt sein):**
   - ≥ 1000 abgerufene Quellen, ≥ 100 gesichtet, ≥ 60 Befunde mit per Code bestätigtem Zitat (`research/kb/<name>/kb.json` → `stats`).
   - Jeder Klassiker aus `recherche_klassiker` ist mit DOI/arXiv-ID im Korpus oder ausdrücklich als „NICHT GEFUNDEN“ markiert

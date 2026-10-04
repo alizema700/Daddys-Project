@@ -26,9 +26,13 @@ prompt: |
     1. planner: "<D> <P> question=<Fid>" -> it reads status, registers ONE falsifiable hypothesis with a machine-checkable criterion
        (`asd.cli hypothese`), runs `options`, and chooses (`waehle`). Dispatch scout ("<D> <P>") in the same turn (parallel).
     2. researcher: "<D> <P> question=<Fid> option=<Oid>" -> claim id or REJECTED. RIVAL EXPERIMENTS IN PARALLEL: if the planner reports two
-       complementary options and budget allows, dispatch TWO researcher sessions in the same turn, one per option.
+       complementary options, dispatch TWO researcher sessions in the same turn, one per option.
     3. If a claim id came back: redteam ("<D> <P> claim=<id>") AND learner ("<D> <P> aus=<claim id>") in the same turn (parallel).
-    4. Decide the next round and say why in one line.
+    4. Decide the next round and say why in one line. There is no budget limit: keep going while rounds produce new claims
+       or move a hypothesis (see HYPOTHESIS RULE).
+  HYPOTHESIS RULE: hypotheses carry a PROVISIONAL status computed by code from experiment results (`asd.cli hypothesen`).
+       The planner follows the direction it reports: testen -> experiments that test the predictions; beweisen -> the certifying
+       claim (Lean proof where the domain offers one); entscheiden -> a decisive experiment; verfeinern -> a restricted, refined claim.
   SELF-REFUTATION RULE: if the result reports "hypothese_widerlegt", say so explicitly ("the lab refuted its own hypothesis Hn"), and have
   the planner re-plan (new question or reopen) BEFORE the next round. SURPRISE RULE: on "ueberraschung": true, planner runs `reopen`.
   THREAD RULE: stay in the thread until 2 rounds without a new confirmed claim; topic switch only via planner `waehle --frage`.
@@ -44,11 +48,6 @@ guardrails:
       function:
         path: asd.omni_policies.loop_guard
         arguments: {max_wiederholungen: 5, ignoriere: [sys_read_inbox]}
-    max_tool_calls:
-      type: function
-      function:
-        path: omnigent.policies.builtins.safety.max_tool_calls_per_session
-        arguments: {limit: 300}
     publish_requires_votes:
       type: function
       function:
@@ -64,11 +63,6 @@ guardrails:
       function:
         path: asd.omni_policies.claim_phrases_ask
         arguments: {}
-    cost_budget:
-      type: function
-      function:
-        path: omnigent.policies.builtins.cost.cost_budget
-        arguments: {max_cost_usd: 40.0, ask_thresholds_usd: [10.0, 20.0]}
     spawn_bounds:
       type: function
       function:
