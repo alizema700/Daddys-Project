@@ -10,24 +10,42 @@ You are building our **technical video** for Hack-Nation Challenge #3 (Databrick
 1. **Every number comes from `results/FROZEN.json`** (read it at build time, never type it by hand). If a value is missing, render `—` and print a warning. Do not round differently than the file.
 2. **No fake UI or fake results.** Animated diagrams and type are fine. Anything that shows real data or our site is a real screenshot/screen recording from `frontend/screenshots/` or a fresh `python frontend/screenshots.py` run, placed inside a device frame.
 3. Name what is *not* shown: "no human baseline measured" (README). No "first", "novel", "proved for all" unless a claim carries it.
-4. Source of truth for the architecture: `README.md` (agent table, policy table), `omni/config.yaml`, `omni/agents/*`. The diagram is `docs/flowchart/prob_flow.html`; rebuild it as Remotion components with the same layout, colors and node names.
+4. Source of truth for the architecture: `README.md` (agent table, policy table), `omni/config.yaml`, `omni/agents/*`. The diagram is `docs/flowchart/prob_flow.html`; rebuild it as Remotion components with the same layout, icons, colors and node names.
 
 ## 1 · Look (Apple keynote, dark)
 - 1920×1080, 30 fps, H.264, ~120 s. Safe margins 120 px.
 - Background `#060C17` → `#0B1A2C` vertical gradient, one soft teal radial glow (`#0F4C5C`, 55 %) that drifts slowly (±40 px over 20 s).
 - Accent teal `#2BC4D6`; reject `#E5615F`; policy/human `#E3A93C`; text `#EEF3F8`; muted `#8C98AA`.
-- Agent colors: Lead `#3D6FDB`, Scout `#4D86E6`, Planner `#16929F`, Researcher `#2E9460`, Verifier `#22B3C9`, Red team `#D14C4C`, Learner `#7C5DD8`, Scribe `#5D6878`, Scientist (human) `#C98A1E`.
-- Type: Instrument Sans (headlines 96–120 px, weight 700, tracking −2.5 %), Instrument Serif *italic* for the one accent phrase per scene, JetBrains Mono for ids, commands and file names. Never more than 8 words on screen at once outside the diagram.
-- Cards: radius 22, fill white 4.5 %, 1 px border white 10 %, inner top highlight; the Verifier card alone glows.
+- **Agents all look the same:** one neutral card (radius 18, fill white 4.5 %, 1 px border white 11 %). They differ only by a white monoline icon in a small round tile (stroke 1.5, round caps): Question = speech bubble, Lead = flag, Planner = two sliders, Scout = magnifier, Researcher = flask, Red team = crosshair, Learner = circular arrow, Scientist = person, Scribe = pen, Paper = document. Copy the exact icon paths from `ICON` in `docs/flowchart/prob_flow.html`. No per-agent colors.
+- Color has meaning only: teal `#2BC4D6` = verifier / accepted, red `#E5615F` = rejected / DENY, amber `#E3A93C` = surprise / human gate (dashed border on Question and Scientist). Text `#EEF3F8`, muted `#8C98AA`.
+- **One typeface only: Instrument Sans.** Hierarchy by size and weight (headline 96–120 px / 700, tracking −3 %; names 600; captions 500; labels 400). No serif, no monospace, also not for ids or commands. The accent phrase is the same font in teal.
+- Never more than 8 words on screen at once outside the diagram. The Verifier card alone glows.
 
-## 2 · Motion language (Apple Motion feel)
-- Springs everywhere: Remotion `spring({damping: 200, mass: 0.9, stiffness: 120})` for moves; text enters with blur 12 px → 0, y +24 → 0, opacity 0 → 1 over 18 frames, words staggered by 3 frames.
-- Camera: one slow push-in per scene (scale 1.00 → 1.04), cuts land on narration beats. Between scenes a 12-frame cross-dissolve with a slight scale-through; no wipes, no spins, no glitch.
-- Diagram: edges draw on with stroke-dashoffset; a glowing pulse (`#BFF6FF`, blur 3) travels each handoff; the node it reaches lifts (scale 1.03, border → teal) for 10 frames.
-- Numbers count up with tabular figures, easing out over 24 frames, and land exactly on the FROZEN value.
-- Reject = card shakes 6 px twice and turns red border; Certificate = small teal square "∎" stamps in with a scale overshoot 0.6 → 1.08 → 1.
-- Device frames: real screenshots sit in a MacBook-style frame (draw it in CSS: rounded dark bezel, thin highlight), floating with a soft shadow, slow parallax.
-- Respect pacing: one idea per scene, ~6–12 s each.
+## 2 · Motion language: one diagram, one camera
+- **The whole video is one continuous canvas**: the diagram from `prob_flow.html` (viewBox 0 0 1600 900) is built once; scenes do not cut between slides. A virtual camera flies over it and **zooms into exactly the part the narration is talking about**, then pulls back out.
+- Camera move per scene: 1.6–2.0 s, quintic ease-in-out (`t<.5 ? 16t⁵ : 1−(−2t+2)⁵/2`), zoom interpolated in **log space** so the scale change feels constant-speed, center interpolated linearly. Movement starts ~0.3 s before the narration names the part and lands while it is said. Never cut, never snap; hold still while something animates inside the frame. Add a very slow drift (scale +2 % over the hold) so the frame never freezes.
+- In Remotion: one `<Diagram>` component inside a wrapper with `transform: scale(s) translate(-x,-y)`, `s` and `x,y` from `interpolate()` over the camera keyframes below; motion blur via `@remotion/motion-blur` `<CameraMotionBlur samples={6} shutterAngle={180}>` during camera moves only.
+- Inside the frame: edges draw on (stroke-dashoffset), a soft glowing dot (`#BFF6FF`, blur 3) travels each handoff with cubic ease, the node it reaches lifts (border → teal, scale 1.03) for 0.9 s.
+- Text enters with blur 12 px → 0, y +24 → 0, opacity 0 → 1 over 18 frames, words staggered by 3 frames. Captions sit in a frosted pill at the bottom (backdrop blur 14 px).
+- Numbers count up with tabular figures over 24 frames and land exactly on the FROZEN value. Reject = card nudges 6 px twice, border red. Certificate = teal square stamps in (scale 0.6 → 1.08 → 1).
+- Real screenshots (scenes 11–12) fly in from the canvas as a device frame on the same camera path, no hard cut.
+
+### Camera keyframes (viewBox x, y, width; height = width × 9/16)
+| Scene | Target | Shows |
+|---|---|---|
+| 1 | 0, 0, 1600 | whole diagram |
+| 2 | 30, 150, 760 | Question → Lead |
+| 3 | 400, 110, 680 | Planner ∥ Scout → Researcher |
+| 4 | 720, 110, 860 | Researcher → Verifier → Certificate |
+| 5 | 560, 95, 720 | reject loop and surprise arc |
+| 6 | 320, 200, 1240 | Red team → Learner → back to Lead |
+| 6b | 840, 470, 700 | Scientist (ASK) → Scribe → Paper |
+| 7 | 30, 450, 800 | policy band |
+| 8 | 770, 450, 800 | shared-record band |
+| 9–10 | 1040, 20, 520 then out to 0, 0, 1600 | KPI corner, then full view for the number scenes |
+| 13 | 0, 0, 1600 → slow pull-out to 0.85× | end |
+
+The "Guided tour" button in `prob_flow.html` plays exactly these moves; use it as the timing reference.
 
 ## 3 · Voice
 - English, calm, precise, ~150 words/min, no hype. Use ElevenLabs if `ELEVENLABS_API_KEY` is set (voice: a neutral, warm narrator, stability 0.55, similarity 0.75, style 0.15), otherwise OpenAI TTS `gpt-4o-mini-tts` if `OPENAI_API_KEY` is set (voice `alloy`, instruction: "calm technical keynote narrator"), otherwise macOS `say -v Samantha` as fallback. Generate one WAV per scene into `video/audio/`, measure each duration, and set each scene's length = voice length + 0.6 s.
@@ -39,7 +57,7 @@ Build each scene as its own Remotion composition section. `{…}` = value from `
 
 | # | Scene (on screen) | Narration |
 |---|---|---|
-| 1 | Black. The word **prob** fades in, then the headline "Agents propose." and, in teal italic serif, "Only code accepts." | "AI agents can now write scientific claims faster than anyone can check them. prob is a research lab where agents propose, and only code is allowed to accept." |
+| 1 | Black. The word **prob** fades in, then the headline "Agents propose." and, in teal (same font), "Only code accepts." | "AI agents can now write scientific claims faster than anyone can check them. prob is a research lab where agents propose, and only code is allowed to accept." |
 | 2 | Full diagram assembles node by node (Question → Lead → Planner ∥ Scout → Researcher → Verifier → Certificate). | "A question goes to a lead agent. It dispatches a planner and a scout in parallel, orchestrated by Omnigent." |
 | 3 | Zoom on Planner: two option cards side by side, "expected gain" bars vs. "verifier calls" cost, one gets chosen. | "The planner never guesses. It compares at least two code-generated experiments by expected gain against verifier cost, within a fixed budget." |
 | 4 | Researcher → Verifier. First claim bounces back red with reason text "rate outside [e^-10, e^10]"; second passes, ∎ stamps. Chips: `computed_rigorous`, `proved_lean`. | "The researcher runs the experiment and submits a typed claim. Only the verifier decides, with exact rational arithmetic, symbolic proofs or Lean. Here a claim fails on one rate. The next one passes and gets a certificate." |
@@ -56,14 +74,15 @@ Build each scene as its own Remotion composition section. `{…}` = value from `
 Read the speedups from `results/FROZEN.json → replay` (H8a, H8b and their CIs); if the key names differ, find them with `python -c "import json;print(json.load(open('results/FROZEN.json'))['replay'].keys())"`. Do not reuse numbers from this prompt; the placeholders above are the only allowed form.
 
 ## 5 · Build steps
-1. `npx create-video@latest video --template blank` (TypeScript), add `@remotion/google-fonts` for the three families.
+1. `npx create-video@latest video --template blank` (TypeScript), add `@remotion/google-fonts` and `@remotion/motion-blur`.
 2. `video/src/frozen.ts` loads `../results/FROZEN.json` at build time; `video/src/script.ts` holds the narration with placeholders filled from it.
 3. `video/tts.py` writes `video/audio/scene_XX.wav` + `durations.json`.
-4. Components: `Background`, `Headline`, `Node`, `Edge` (draw-on + pulse), `PolicyChip`, `HashChain`, `CountUp`, `TileGrid`, `DeviceFrame`, `Terminal`.
+4. Components: `Camera` (keyframes above), `Diagram`, `Node` (shared card + icon), `Edge` (draw-on + pulse), `Caption`, `PolicyChip`, `HashChain`, `CountUp`, `TileGrid`, `DeviceFrame`, `Terminal`. Load only Instrument Sans via `@remotion/google-fonts`.
 5. `npx remotion render Prob video/out/prob_technical.mp4 --codec h264 --crf 18`, then mix music with ffmpeg (`loudnorm` to −16 LUFS integrated).
 6. Export stills of scenes 2, 4, 9 as PNG for the README.
 
 ## 6 · Check before you hand it over
 - Run a script that prints every number shown on screen next to its FROZEN.json path; any mismatch fails the build.
+- Check that no frame contains a hard cut inside scenes 1–10 and that the only font in the bundle is Instrument Sans.
 - Watch the render once at 1× and list: scene timings, any text on screen longer than 8 words, any overlap or clipped text.
 - Total length 1:45–2:15. Report the final path, duration and the TTS engine used.
