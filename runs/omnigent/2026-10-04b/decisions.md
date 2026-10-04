@@ -1,0 +1,8 @@
+| Zeit | Agent | Entscheidung | Beleg |
+|---|---|---|---|
+| 2026-10-04 03:51:02 | SETUP | Projekt aus projects/omni_proofreading kopiert; Annahme A1; Startfrage F26 | asd/omni_setup.py |
+| 2026-10-04 03:51:29 | PLANNER | [F26] Option O2 (tiefe_rechnung, Kosten 1, Gewinn 0.65); verworfen: O1 (breiter_scan) | Deep certified computation on one claim has the highest expected gain (0.65) for only 1 verifier call; budget 40 left. |
+| 2026-10-04 03:51:30 | PLANNER | [F26] Option O1 (breiter_scan, Kosten 3, Gewinn 0.35); verworfen: O2 (tiefe_rechnung) | Broad low-precision scan complements the deep check by finding candidate claims; costs 3, and together with O2 (1) the 4 calls are well within the 40 budget. |
+| 2026-10-04 03:55:59 | PLANNER | REOPEN Annahme A1: Klassifikation 50 / 11 / 27: genau ['fam2_11', 'fam2_35', 'fam2_39', 'fam2_41', 'fam2_43', 'fam2_45', 'fam2_58', 'fam2_6 | Confirmed claim proofreading-O20 contradicts assumption A1, so A1 must be rechecked before further experiments rely on it. (Beleg proofreading-O20) |
+| 2026-10-04 03:56:12 | PLANNER | THEMENWECHSEL -> [F27] Ist die Klassifikation der Familie (bewiesen / Gegenbeispiel / offen) mit allen bisher zertifizierte | A1 was reopened because O20 contradicts it; F27 checks consistency of all certified results, so it outranks continuing F26. |
+| 2026-10-04 03:56:16 | PLANNER | [F27] Option O2 (tiefe_rechnung, Kosten 1, Gewinn 0.65); verworfen: O1 (breiter_scan) | O2 has the higher expected gain (0.65 vs 0.35) at cost 1 versus 3, and F27 is a single consistency claim. O1's broad scan is rejected as costlier and less targeted. Budget is 36 of 40, so it is not a  |

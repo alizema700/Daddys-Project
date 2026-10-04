@@ -1,0 +1,78 @@
+[
+ {
+  "beat": "Question",
+  "zeit": "04:20:36",
+  "ids": [
+   "F20"
+  ],
+  "text": "Task: Domain proofreading, project omni_proofreading, start question F20, 3 rounds. Goal: decide more of the 35 open topologies of the two-bound-state family (exact counterexample certificate or proof), within the verifier bud | Question F20: Gibt es unter den 35 offenen Topologien der Familie mit höchstens zwei gebundenen Zuständen (fam2_*) weitere, die eta <= e^{-2 Delta} = 1e-4 erreichen (exaktes Zertifikat erreichbar_liste), oder lässt sich die Schranke für weitere Mitglieder beweisen?",
+  "beleg": [
+   "lead__69b219d2.jsonl",
+   "prereg.md"
+  ],
+  "bildschirm": "Omnigent terminal with the start prompt; prereg.md"
+ },
+ {
+  "beat": "Agent handoffs",
+  "zeit": "04:20:49",
+  "ids": [
+   "O2"
+  ],
+  "text": "Lead dispatches in parallel: planner (proofreading omni_proofreading question=F20) + scout (proofreading omni_proofreading). Planner chooses O2 for F20: O2 has the higher expected gain (0.65 vs 0.35) at 1 verifier call versus 3 for O1; the budget is ample (40 of 40 left), but the cheaper, deeper check is still the better use of it.",
+  "beleg": [
+   "record.jsonl",
+   "decisions.md",
+   "HIGHLIGHTS.md"
+  ],
+  "bildschirm": "HIGHLIGHTS.md rows 'Parallel dispatch' and 'Choice between options'; decisions.md"
+ },
+ {
+  "beat": "Experiment",
+  "zeit": "04:25:09",
+  "ids": [
+   "E3"
+  ],
+  "text": "researcher runs search_counterexamples (E3, option O2): {'unter_schwelle': [{'topologie': 'fam2_9', 'eta': 2.000855568147094e-05, 'params': {'verw_C0_E+': 4.748790448167281, 'verw_C0_E-': 5.974755498486219, 'bind_C1_E+': 0.17888541085133824, 'bind_C1_E-': 7.149508249891922, 'umw1r_C1_C0+': 2.832",
+  "beleg": [
+   "record.jsonl"
+  ],
+  "bildschirm": "researcher session: asd.cli experiment call and its result"
+ },
+ {
+  "beat": "Result",
+  "zeit": "04:25:45",
+  "ids": [
+   "proofreading-O14"
+  ],
+  "text": "Verifier accepts proofreading-O14 (computed_rigorous): Zertifikat (a) für 10/10 Fälle bestanden",
+  "beleg": [
+   "record.jsonl",
+   "state.json"
+  ],
+  "bildschirm": "RESULT line of asd.cli pruefe"
+ },
+ {
+  "beat": "What the lab learned",
+  "zeit": "04:25:30",
+  "ids": [
+   "proofreading-O14",
+   "A1"
+  ],
+  "text": "Rejected by the verifier: Zertifikat (a) für 10/11 Fälle bestanden; nicht bestanden: [('fam2_13', 'Rate außerhalb [e^-10, e^10] (|log k| = 10.06; auch abgeleitete Rückraten zählen')] | Surprise against assumption A1: neue zertifizierte Verletzung(en) ['fam2_35', 'fam2_39', 'fam2_41', 'fam2_43', 'fam2_45', 'fam2_58', 'fam2_67', 'fam2_75'] ausserhalb der angenommenen Menge ['f | Planner reopens A1 -> new question(s) ['F21']",
+  "beleg": [
+   "record.jsonl",
+   "decisions.md (REOPEN)"
+  ],
+  "bildschirm": "decisions.md REOPEN row; RESULT with ueberraschung: true"
+ },
+ {
+  "beat": "Next experiment",
+  "zeit": "04:28:26",
+  "ids": [],
+  "text": "The planner picked F24 with option O2 (tiefe_rechnung) and rejected O1. The round 3 researcher is dispatched on that. Redteam on O15 is still outstanding. I'm waiting on both.",
+  "beleg": [
+   "lead__69b219d2.jsonl"
+  ],
+  "bildschirm": "lead summary in the Omnigent session"
+ }
+]

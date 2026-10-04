@@ -1,0 +1,305 @@
+{
+ "omnigent_session_id": "69b219d241fe4bb29cd74c2385358ebf",
+ "agent": "verifier-gated-lab",
+ "kosten_usd": 1.2894507,
+ "handoffs": [
+  {
+   "sender": "verifier-gated-lab",
+   "empfaenger": "scout",
+   "titel": "scout R1",
+   "zeit": 1791080449,
+   "conversation_id": "ce4b6c63e46248cd86849766551a5b25",
+   "nachricht_sha256": "b701f4eaf19c8237642b5c7f6c30a545e3bfc819bc580ba26bb8f02cc6fddaa3",
+   "inbox_sha256": "f3dde7ca7ba5ebac7866c0c04d7c6d229c996bdfca16610c86f018a8485d85fd",
+   "inbox_zeit": 1791080477
+  },
+  {
+   "sender": "verifier-gated-lab",
+   "empfaenger": "planner",
+   "titel": "plan F20 R1",
+   "zeit": 1791080450,
+   "conversation_id": "73755de503394ae7afa82fca8675557d",
+   "nachricht_sha256": "1eb1c875750b228b5ce414ac3cb33a50f2d82d5f2cfb58c0587e52c23384f9b5",
+   "inbox_sha256": "1a60d867774bad30d832f613357d4b6eab5f696a77efc4b3ffc39ce1118c8310",
+   "inbox_zeit": 1791080470
+  },
+  {
+   "sender": "verifier-gated-lab",
+   "empfaenger": "researcher",
+   "titel": "research F20 O2 R1",
+   "zeit": 1791080473,
+   "conversation_id": "1e400c6d901d447a81f1c294c9b96839",
+   "nachricht_sha256": "1427e7ac4cbff7222b6601779bbc1ba3626a417938a09d5d02a4012de7ab3033",
+   "inbox_sha256": "4e21799ea91615ecc109498868302417052062a7fba4036eff38f9e90c5ed25e",
+   "inbox_zeit": 1791080749
+  },
+  {
+   "sender": "verifier-gated-lab",
+   "empfaenger": "planner",
+   "titel": "reopen A1 R1",
+   "zeit": 1791080758,
+   "conversation_id": "0385cd1993dc488eaf5dbdc351a70bdb",
+   "nachricht_sha256": "fb0cf5a0072b2c84862e7434b28180021f424db0f7cab071bfa658b1bb6bad49",
+   "inbox_sha256": "20a15160221e8505d9280338dbce298d7171df5e2efd33f32ece0594643707c2",
+   "inbox_zeit": 1791080796
+  },
+  {
+   "sender": "verifier-gated-lab",
+   "empfaenger": "redteam",
+   "titel": "redteam O14",
+   "zeit": 1791080758,
+   "conversation_id": "86675f82a97047f280ea36ea64671d24",
+   "nachricht_sha256": "e59aa72fec457a3eeb07ab50ac3d88fb929afb5628ef5e1e416ddac7a7a8e63a",
+   "inbox_sha256": "1acf6f351950c48a5642b730f78f05e970fe95eea6ce8a5924c924f01479adad",
+   "inbox_zeit": 1791080819
+  },
+  {
+   "sender": "verifier-gated-lab",
+   "empfaenger": "learner",
+   "titel": "learn O14",
+   "zeit": 1791080760,
+   "conversation_id": "00128efff6e54612a53ef86c17ce5e54",
+   "nachricht_sha256": "675aac5c0656c0dee6313160739e5dfb37b1b7879e0ae76649ab889f7fe3de7c",
+   "inbox_sha256": "7477802b68606284b54073a6cccc9f43d49573be8ff33344080f34966a0d5f03",
+   "inbox_zeit": 1791080774
+  },
+  {
+   "sender": "verifier-gated-lab",
+   "empfaenger": "researcher",
+   "titel": "research F21 O2 R2",
+   "zeit": 1791080804,
+   "conversation_id": "560bcade08b8401aa298932008383bfc",
+   "nachricht_sha256": "d0e8fd3e1fcd38ffa5888ed3ee5606ec698c9398d0f22de151ddab38f5c41c91",
+   "inbox_sha256": "d39e9e47df2fc3ca57eeb1b1ce59a821f18aa8dee1788b5f4d9d4239af0c8ca8",
+   "inbox_zeit": 1791080855
+  },
+  {
+   "sender": "verifier-gated-lab",
+   "empfaenger": "redteam",
+   "titel": "redteam O15",
+   "zeit": 1791080858,
+   "conversation_id": "a3c1d11ea45a43f8b88e71f4186c960c",
+   "nachricht_sha256": "c3555a6d40d546f6a65aef25b5ea3a69e977607642c768156d79749782105555",
+   "inbox_sha256": "903b022729d5613b3cfe369a3c18ce15b2d74d7e6991d52b49e45e9c7a2f8015",
+   "inbox_zeit": 1791080939
+  },
+  {
+   "sender": "verifier-gated-lab",
+   "empfaenger": "learner",
+   "titel": "learn O15",
+   "zeit": 1791080859,
+   "conversation_id": "8f4d3098c9e1476e9f2cb72e15b7204b",
+   "nachricht_sha256": "58ca2ae08094382c025877ef634f33d36f3ae449761b2b6e08a8d325959ce4d7",
+   "inbox_sha256": "c1315ce285fe239bb8b8cb834c0723e0b58dc1cf854f859b95e2fe185f715485",
+   "inbox_zeit": 1791080881
+  },
+  {
+   "sender": "verifier-gated-lab",
+   "empfaenger": "planner",
+   "titel": "plan F24 R3",
+   "zeit": 1791080885,
+   "conversation_id": "28c3f192e3744b628133aa9ffb3998c8",
+   "nachricht_sha256": "d86801234eb7f32a07b1c9836e64f84c676a3e076e93cfedd2cc1c026c1ea255",
+   "inbox_sha256": "0bfee8c254b5eb070ed2bb23adfb77105091d65ab65e017deafe46ec34242368",
+   "inbox_zeit": 1791080901
+  },
+  {
+   "sender": "verifier-gated-lab",
+   "empfaenger": "researcher",
+   "titel": "research F24 O2 R3",
+   "zeit": 1791080904,
+   "conversation_id": "370098cf43fe4fcbbebbcd6bf512987d",
+   "nachricht_sha256": "2914435a5972f2cc0498709e9ced18f0e6e3ded37fcac169285b843b2d66e341",
+   "inbox_sha256": "07ac67d87796ce6e5b56a6235e325ef032f3b5397f51bb5a5f7473fa8e8ac140",
+   "inbox_zeit": 1791080927
+  },
+  {
+   "sender": "verifier-gated-lab",
+   "empfaenger": "redteam",
+   "titel": "redteam O16",
+   "zeit": 1791080930,
+   "conversation_id": "0c16c1316afa445fa46c8f54179aab4e",
+   "nachricht_sha256": "b0c5b20d7090455b65054feb1575485d8b20b2d26cbae0bd5b530dd6fa7bee19",
+   "inbox_sha256": "534713d4340a2e989c7ba2ec0e7b314ec130c35383a49019b2d24c69717314c9",
+   "inbox_zeit": 1791081020
+  },
+  {
+   "sender": "verifier-gated-lab",
+   "empfaenger": "learner",
+   "titel": "learn O16",
+   "zeit": 1791080931,
+   "conversation_id": "dafe3493e4ac4ec095fb825e696d4c14",
+   "nachricht_sha256": "555795256c7bff8d6068d608b077f7e8e0c9ab6aa7e89efa76596fca2bc1dbcb",
+   "inbox_sha256": "22d4fd97cc1809790bd4af65d0b16279e2940702def32bfa8e6d80d768b78585",
+   "inbox_zeit": 1791080950
+  },
+  {
+   "sender": "verifier-gated-lab",
+   "empfaenger": "scribe",
+   "titel": "scribe paper",
+   "zeit": 1791080956,
+   "conversation_id": "24cfe2f3e85e4659872979a97eadb2c7",
+   "nachricht_sha256": "c882947b685eb912fa1369077b9b09160f86902122a683382a7896f9ccae4268",
+   "inbox_sha256": "49fc9f232bf164e4f52b5be257279e9f11368f93cc399bed8282c26b7a37fb9f",
+   "inbox_zeit": 1791081599
+  }
+ ],
+ "verifier_quittungen": [
+  {
+   "zeit": "2026-10-04T02:25:30",
+   "claim_id": null,
+   "bestanden": false,
+   "level": "hypothesis",
+   "zertifikat_sha256": null,
+   "claim_hash": null
+  },
+  {
+   "zeit": "2026-10-04T02:25:45",
+   "claim_id": "proofreading-O14",
+   "bestanden": true,
+   "level": "computed_rigorous",
+   "zertifikat_sha256": "58dab5000dca0b8eedf45d49af530951a518010728ece5765850e82676342268",
+   "claim_hash": null
+  },
+  {
+   "zeit": "2026-10-04T02:27:31",
+   "claim_id": "proofreading-O15",
+   "bestanden": true,
+   "level": "computed_rigorous",
+   "zertifikat_sha256": "9e73531eb3a8a66cf16fcdb592055b9af7213bf47db1b5dd30d8f166ffefe9ff",
+   "claim_hash": null
+  },
+  {
+   "zeit": "2026-10-04T02:28:43",
+   "claim_id": "proofreading-O16",
+   "bestanden": true,
+   "level": "computed_rigorous",
+   "zertifikat_sha256": "74507314a9c30ef3cc003ea5be562f504038ba3763f3618dc6fe24e8cb8c2179",
+   "claim_hash": null
+  }
+ ],
+ "policy_ereignisse": [
+  {
+   "art": "DENY",
+   "session": "lead__69b219d2.jsonl",
+   "zeit": 1791080441,
+   "grund": "Denied by policy: leak_guard: blocked source (hold-out results / answer key / pre-cutoff literature)"
+  },
+  {
+   "art": "DENY",
+   "session": "lead__69b219d2.jsonl",
+   "zeit": 1791080441,
+   "grund": "Denied by policy: verifier_only: direct write to lab state; use `python -m asd.cli prüfe`"
+  },
+  {
+   "art": "DENY",
+   "session": "planner-plan_F20_R1__73755de5.jsonl",
+   "zeit": 1791080457,
+   "grund": "Denied by policy: harness_only: agents may only call the frozen harness (python -m asd.cli / asd.paper)"
+  },
+  {
+   "art": "DENY",
+   "session": "researcher-research_F20_O2_R1__1e400c6d.jsonl",
+   "zeit": 1791080478,
+   "grund": "Denied by policy: harness_only: agents may only call the frozen harness (python -m asd.cli / asd.paper)"
+  },
+  {
+   "art": "DENY",
+   "session": "researcher-research_F20_O2_R1__1e400c6d.jsonl",
+   "zeit": 1791080712,
+   "grund": "Denied by policy: harness_only: agents may only call the frozen harness (python -m asd.cli / asd.paper)"
+  },
+  {
+   "art": "DENY",
+   "session": "planner-reopen_A1_R1__0385cd19.jsonl",
+   "zeit": 1791080764,
+   "grund": "Denied by policy: harness_only: agents may only call the frozen harness (python -m asd.cli / asd.paper)"
+  },
+  {
+   "art": "DENY",
+   "session": "redteam-redteam_O14__86675f82.jsonl",
+   "zeit": 1791080766,
+   "grund": "Denied by policy: harness_only: agents may only call the frozen harness (python -m asd.cli / asd.paper)"
+  },
+  {
+   "art": "DENY",
+   "session": "researcher-research_F21_O2_R2__560bcade.jsonl",
+   "zeit": 1791080808,
+   "grund": "Denied by policy: harness_only: agents may only call the frozen harness (python -m asd.cli / asd.paper)"
+  },
+  {
+   "art": "DENY",
+   "session": "redteam-redteam_O15__a3c1d11e.jsonl",
+   "zeit": 1791080864,
+   "grund": "Denied by policy: harness_only: agents may only call the frozen harness (python -m asd.cli / asd.paper)"
+  },
+  {
+   "art": "DENY",
+   "session": "planner-plan_F24_R3__28c3f192.jsonl",
+   "zeit": 1791080889,
+   "grund": "Denied by policy: harness_only: agents may only call the frozen harness (python -m asd.cli / asd.paper)"
+  },
+  {
+   "art": "DENY",
+   "session": "researcher-research_F24_O2_R3__370098cf.jsonl",
+   "zeit": 1791080908,
+   "grund": "Denied by policy: harness_only: agents may only call the frozen harness (python -m asd.cli / asd.paper)"
+  },
+  {
+   "art": "DENY",
+   "session": "researcher-research_F24_O2_R3__370098cf.jsonl",
+   "zeit": 1791080909,
+   "grund": "Denied by policy: harness_only: agents may only call the frozen harness (python -m asd.cli / asd.paper)"
+  },
+  {
+   "art": "DENY",
+   "session": "redteam-redteam_O16__0c16c131.jsonl",
+   "zeit": 1791080936,
+   "grund": "Denied by policy: harness_only: agents may only call the frozen harness (python -m asd.cli / asd.paper)"
+  },
+  {
+   "art": "DENY",
+   "session": "learner-learn_O16__dafe3493.jsonl",
+   "zeit": 1791080939,
+   "grund": "Denied by policy: harness_only: agents may only call the frozen harness (python -m asd.cli / asd.paper)"
+  },
+  {
+   "art": "ASK",
+   "session": "lead__69b219d2.jsonl",
+   "zeit": 1791081081,
+   "grund": "[System: sub-agent scribe/scribe paper is blocked awaiting human approval: publish_gate: publish_gate: building/publishing the paper needs human approval. Its a"
+  },
+  {
+   "art": "ASK_FREIGEGEBEN",
+   "session": "lead__69b219d2.jsonl",
+   "zeit": 1791081593
+  }
+ ],
+ "runden_stuetzen_sich_auf_entscheidungen": [
+  {
+   "researcher": "research F20 O2 R1",
+   "frage": "F20",
+   "gestuetzt_auf_entscheidung": true
+  },
+  {
+   "researcher": "research F21 O2 R2",
+   "frage": "F21",
+   "gestuetzt_auf_entscheidung": true
+  },
+  {
+   "researcher": "research F24 O2 R3",
+   "frage": "F24",
+   "gestuetzt_auf_entscheidung": true
+  }
+ ],
+ "hash_kette": "hash chain intact (82 links, head 1fcb11696c9a)",
+ "verification": {
+  "passed": true,
+  "fehlschlaege": [],
+  "handoffs": 14,
+  "quittungen": 4,
+  "deny": 14,
+  "ask": 1,
+  "ask_freigegeben": 1
+ }
+}
