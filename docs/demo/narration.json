@@ -1,77 +1,77 @@
 {
-  "_note": "Narration for prob_live_demo.mp4 (68 s). 'at' = second where the line starts. Edit the text freely; voice.py fits each line into its slot.",
+  "_note": "Narration for prob_live_demo.mp4 (60 s). 'at' = second where the line starts. Edit the text freely; voice.py fits each line into its slot.",
   "lines": [
     {
       "at": 0.4,
-      "text": "Meet prob. An AI agent tests our lab, end to end."
+      "text": "Meet prob. An AI agent tests our lab."
     },
     {
-      "at": 4.4,
+      "at": 3.9,
       "text": "It asks a real question from biophysics: can a proofreading network beat the Hopfield bound?"
     },
     {
-      "at": 11.2,
+      "at": 9.9,
       "text": "A real, logged run."
     },
     {
-      "at": 13.4,
-      "text": "The lead splits the work. The planner weighs gain against cost."
+      "at": 11.8,
+      "text": "The lead splits the work. The planner weighs the cost."
     },
     {
-      "at": 17.6,
+      "at": 15.5,
       "text": "Outside the harness? Denied."
     },
     {
-      "at": 19.7,
+      "at": 17.4,
       "text": "The researcher finds candidates."
     },
     {
-      "at": 21.6,
+      "at": 19.1,
       "text": "The verifier says no, and names the case that failed."
     },
     {
-      "at": 25.9,
+      "at": 22.9,
       "text": "The next claim passes. Exact certificate."
     },
     {
-      "at": 29.4,
-      "text": "Then a surprise: a verified result breaks an assumption. The lab reopens it."
+      "at": 25.9,
+      "text": "Then a surprise. A result breaks an assumption, and the lab reopens it."
     },
     {
-      "at": 34.8,
-      "text": "A red team on another model tries to break it. It holds."
+      "at": 30.7,
+      "text": "A red team on another model attacks it. It holds."
     },
     {
-      "at": 39.9,
+      "at": 35.2,
       "text": "Third result, certified."
     },
     {
-      "at": 43.3,
-      "text": "Now the agent opens a certificate, and re-runs it right in the browser."
+      "at": 38.2,
+      "text": "The agent re-runs a certificate in the browser."
     },
     {
-      "at": 48.9,
+      "at": 43.1,
       "text": "Pass."
     },
     {
-      "at": 50.0,
+      "at": 44.1,
       "text": "Nudge one rate by 0.1 percent. Fail."
     },
     {
-      "at": 53.3,
+      "at": 47.0,
       "text": "This run took six minutes. Real studies run for hours, round after round."
     },
     {
-      "at": 59.2,
+      "at": 52.2,
       "text": "A human approves. The scribe writes the paper."
     },
     {
-      "at": 62.7,
+      "at": 55.3,
       "text": "Eleven exact violations, among eighty-eight networks."
     },
     {
-      "at": 65.4,
-      "text": "prob. Agents propose. Only code accepts."
+      "at": 57.7,
+      "text": "prob. Only code accepts."
     }
   ]
 }

@@ -411,7 +411,7 @@ function render(t){
 
 /* ---------- playback ---------- */
 let raf=0,t0=0,STOP=false;
-function play(){cancelAnimationFrame(raf);t0=performance.now();const f=now=>{if(STOP)return;const t=Math.min(DUR,(now-t0)/1000);render(t);if(t<DUR)raf=requestAnimationFrame(f)};raf=requestAnimationFrame(f)}
+function play(){cancelAnimationFrame(raf);t0=performance.now();const f=now=>{if(STOP)return;const t=Math.min(DUR,(now-t0)/1000*DUR/60);render(t);if(t<DUR)raf=requestAnimationFrame(f)};raf=requestAnimationFrame(f)}
 window.__render=render; window.__setup=()=>{setup();render(0)};
 window.__fit1=()=>{cancelAnimationFrame(raf);STOP=true;$("vp").style.cssText="position:fixed;left:0;top:0;width:1920px;height:1080px;border:0;border-radius:0;aspect-ratio:auto";document.body.style.padding="0";setup();render(0)};
 $("playB").addEventListener("click",play);
