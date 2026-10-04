@@ -130,6 +130,23 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #rec .dot{background:var(--no)}
 #cap{left:50%;bottom:36px;transform:translateX(-50%);font-size:25px;font-weight:600;letter-spacing:-.01em;color:#fff;background:rgba(6,12,23,.74);
   border:1px solid var(--stroke);border-radius:999px;padding:13px 26px;backdrop-filter:blur(16px);white-space:nowrap}
+#ff{inset:0;display:none;background:rgba(6,12,23,.78);backdrop-filter:blur(10px)}
+.ffbox{position:absolute;left:260px;top:170px;display:flex;gap:56px;align-items:center}
+.clock{width:240px;height:240px} .clock svg{width:100%;height:100%}
+.cf{fill:rgba(255,255,255,.04);stroke:rgba(255,255,255,.12);stroke-width:2}
+.ca{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;transform:rotate(-90deg);transform-origin:60px 60px;stroke-dasharray:326.7}
+.hh{stroke:#EEF3F8;stroke-width:5;stroke-linecap:round;transform-origin:60px 60px} .mh{stroke:var(--accent);stroke-width:3;stroke-linecap:round;transform-origin:60px 60px}
+.ffl{font-size:18px;font-weight:600;letter-spacing:.2em;color:var(--accent)}
+.ffh{font-size:64px;font-weight:700;letter-spacing:-.035em;margin-top:8px} .ffh span{color:var(--accent)}
+.ffk{display:flex;gap:48px;margin-top:22px} .ffk div{font-size:17px;color:var(--muted)} .ffk b{display:block;font-size:52px;color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.grid{position:absolute;left:260px;right:260px;top:520px;display:grid;grid-template-columns:repeat(22,1fr);gap:10px}
+.grid i{aspect-ratio:1;border-radius:7px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03)}
+.grid i.p{background:var(--accent);border-color:var(--accent)} .grid i.v{background:var(--no);border-color:var(--no)}
+#paperL{inset:0;display:none;background:radial-gradient(900px 600px at 50% 40%, rgba(26,143,176,.22), transparent 70%),rgba(6,12,23,.92)}
+#paper{position:absolute;left:0;top:0;width:679px;height:960px;transform-origin:0 0;border-radius:6px;overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08)}
+#paper img{display:block;width:100%;height:100%}
+.appr{position:absolute;left:50%;top:44px;transform:translateX(-50%);display:flex;gap:12px;align-items:center;font-size:20px;font-weight:600;background:rgba(6,12,23,.8);border:1px solid rgba(227,169,60,.55);border-radius:999px;padding:10px 20px 10px 10px;z-index:2;white-space:nowrap}
+.appr .ic{width:34px;height:34px;border-radius:50%;background:var(--tile);display:grid;place-items:center} .appr svg{width:20px;height:20px}
 #end{inset:0;display:grid;place-items:center;text-align:center;background:radial-gradient(900px 500px at 50% 45%, rgba(26,143,176,.25), transparent 70%),var(--bg)}
 #end h2{margin:0;font-size:92px;font-weight:700;letter-spacing:-.045em}
 #end h2 span{color:var(--accent)}
@@ -192,11 +209,23 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   <div id="ripple"><i></i></div>
   <div id="cursor"><svg viewBox="0 0 30 36"><path d="M3 2 L3 28 L10 21.5 L14.8 33 L19.2 31.2 L14.5 20 L24 20 Z" fill="#fff" stroke="#04121A" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="who">Claude · test agent</span></div>
  </div>
+ <div class="hud" id="ff">
+   <div class="ffbox">
+     <div class="clock"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" class="cf"/><circle cx="60" cy="60" r="52" class="ca" id="arc"/><line x1="60" y1="60" x2="60" y2="22" class="hh" id="hh"/><line x1="60" y1="60" x2="60" y2="16" class="mh" id="mh"/><circle cx="60" cy="60" r="4" fill="#EEF3F8"/></svg></div>
+     <div class="fft"><div class="ffl">FAST-FORWARD</div><div class="ffh">Hours of agent work, <span>compressed</span></div>
+       <div class="ffk"><div><b id="k1">0</b>proved</div><div><b id="k2" style="color:var(--no)">0</b>exact violations</div><div><b id="k3" style="color:var(--muted)">88</b>open</div></div></div>
+   </div>
+   <div class="grid" id="grid"></div>
+ </div>
+ <div class="hud" id="paperL">
+   <div class="appr" id="appr"><span class="ic"><svg viewBox="0 0 20 20"><g class="ico"><circle cx="10" cy="6.5" r="3"/><path d="M4 17c.8-3.4 3.2-5 6-5s5.2 1.6 6 5"/></g></svg></span>Scientist approved publishing <span class="tag am">ASK gate</span></div>
+   <div id="paper"><img src="/*PAPER*/" alt="First page of the generated paper: Eleven exactly certified violations of the proofreading bound among 88 two-bound-state networks"></div>
+ </div>
  <div class="hud" id="rec"><span class="dot"></span>AI test run · replay of run 2026-10-04b</div>
  <div class="hud" id="cap"></div>
  <div class="hud" id="end">
    <div><h2>Every result, <span>verified.</span></h2><p>Agents propose. Only code accepts.</p>
-   <div class="k"><div><b>5</b>verifier calls</div><div><b>3</b>certified</div><div><b>2</b>rejected</div><div><b>6 min</b>run time</div><div><b>$1.01</b>total cost</div></div></div>
+   <div class="k"><div><b>88</b>networks</div><div><b>50</b>proved</div><div><b>11</b>exact violations</div><div><b>27</b>open</div><div><b>1</b>paper</div></div></div>
  </div>
 </div>
 </div>
@@ -207,7 +236,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </div>
 
 <script>
-const $=id=>document.getElementById(id), DUR=60;
+const $=id=>document.getElementById(id), DUR=68;
 const ICON={
  lead:'<path d="M5 17V3"/><path d="M5 4h10l-2.5 3.5L15 11H5"/>',
  plan:'<path d="M3 6h14M3 14h14"/><circle cx="7" cy="6" r="2"/><circle cx="13" cy="14" r="2"/>',
@@ -245,6 +274,9 @@ $("feed").innerHTML=EV.map(([t,id,a,k,h])=>`<div class="ev ${k}" id="${id}"><spa
 const VL=[[25.9,"v19","proofreading-O19","10 topologies reach η ≤ 10⁻⁴, exact rational rates"],[28.9,"v20","proofreading-O20","13 topologies reach η ≤ 10⁻⁴ · red team confirmed"],[40.1,"v21","proofreading-O21","η ≥ 1/D² for 50 topologies, symbolic"]];
 $("vlist").insertAdjacentHTML("beforeend",VL.map(([t,id,a,b])=>`<div class="vi" id="${id}"><div class="id">${a} · computed rigorous</div><div class="tx">${b}</div></div>`).join(""));
 
+$("grid").innerHTML=Array.from({length:88},()=>"<i></i>").join("");
+// order in which tiles get decided (deterministic shuffle)
+const ORD=Array.from({length:88},(_,i)=>i).sort((a,b)=>((a*37)%88)-((b*37)%88)).map((v,i,arr)=>arr[(i*29)%88]);
 /* ---------- math ---------- */
 const cl=x=>Math.max(0,Math.min(1,x));
 const eIO=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
@@ -280,14 +312,14 @@ function setup(){
    [29.2,...E("e6",29.8),1.6],[31.0,...E("e6",31.0),1.6],[32.4,...E("e7",32.6),1.55],[33.6,...E("e7",33.6),1.55],
    [35.2,...E("e8",35.6),1.5],[36.6,...E("e8",36.6),1.5],[37.8,...E("e9",38.2),1.5],[39.2,...E("e9",39.2),1.5],[40.4,...E("e10",40.8),1.45],[42.0,...E("e10",42),1.45],
    [43.4,...c("vlist",0,20),1.55],[44.6,...c("vlist",0,20),1.55],[46.0,...c("insp",0,10),1.85],[52.4,...c("insp",0,10),1.85],
-   [53.6,1580,250,1.6],[55.4,1580,250,1.6],[56.8,960,540,1],[60,960,540,1]];
+   [54.4,960,540,1],[68,960,540,1]];
   const D=(id,t,fx=.5,fy=.5)=>{const b=box($(id));return [b.x+b.w*fx,b.y+b.h*fy-scrollAt(t)]};
   CURK=[[0,1500,980],[0.6,1500,980],[3.6,...M.q],[4.0,...M.q],[4.8,M.q[0]+30,M.q[1]+85],[9.0,M.q[0]+60,M.q[1]+80],[9.8,...M.rec],[10.4,...M.rec],[11.0,...M.go],[11.6,...M.go],
    [13.4,1100,540],[14.8,...D("o2",15.2,.45,.5)],[16.2,...D("o2",16.2,.85,.7)],[17.8,...D("e2",18,.45,.55)],[20.2,...D("e3",20.4,.5,.75)],
    [22.4,...D("why",22.8,.05,.6)],[24.2,...D("why",24.2,.97,.6)],[26.4,...D("e5",26.8,.55,.6)],[29.8,...D("sur",30.2,.4,.6)],[30.8,...D("sur",30.8,.6,.6)],
    [32.6,...D("e7",33,.5,.55)],[35.6,...D("e8",36,.6,.55)],[38.2,...D("e9",38.6,.4,.75)],[40.8,...D("e10",41.2,.5,.55)],
    [43.6,...el("v20",.3,.5)],[44.3,...el("v20",.3,.5)],[46.6,...el("bRe",.5,.55)],[47.3,...el("bRe",.5,.55)],[49.6,...el("bTa",.5,.55)],[50.3,...el("bTa",.5,.55)],
-   [52.0,...el("rFail",.5,1.2)],[53.8,1520,200],[55.2,1640,280],[57,1300,700],[60,1300,700]];
+   [52.0,...el("rFail",.5,1.2)],[54.4,1180,760],[68,1180,760]];
   CLICKS=[[4.0,...M.q],[10.1,...M.rec],[11.3,...M.go],[44.0,...el("v20",.3,.5)],[47.1,...el("bRe",.5,.55)],[50.1,...el("bTa",.5,.55)]];
 }
 function scrollAt(t){return track(SC,t,eQ)[0]}
@@ -295,7 +327,7 @@ function scrollAt(t){return track(SC,t,eQ)[0]}
 /* ---------- render(t): everything is a function of t ---------- */
 const Q="Which open fam2 topologies reach η < e^{−2Δ}, and which provably satisfy η ≥ 1/D²?".replace("e^{−2Δ}","e⁻²ᐞ");
 const QTXT="Which open fam2 topologies reach η < 10⁻⁴, and which provably satisfy η ≥ 1/D²?";
-const CAPS=[[0,"An AI test agent opens prob"],[3.8,"It asks a real research question"],[9.6,"Recorded mode: replay of a logged run"],[13.2,"Lead dispatches the agents"],[14.6,"Planner weighs gain against verifier cost"],[17.4,"Policy blocks a call outside the harness"],[19.4,"Researcher runs the experiment"],[21.6,"Verifier rejects and names the failing case"],[25.8,"The next claim passes with an exact certificate"],[29.6,"A surprise reopens assumption A1"],[34.8,"Red team attacks · learner proposes follow-ups"],[39.9,"Third certified result"],[43.2,"Open a certificate"],[46.8,"Re-run the check in the browser"],[49.8,"Change one rate by 0.1 % → it fails"],[53.2,"5 calls · 3 certified · 2 rejected"],[56.8,""]];
+const CAPS=[[0,"An AI test agent opens prob"],[3.8,"It asks a real research question"],[9.6,"Recorded mode: replay of a logged run"],[13.2,"Lead dispatches the agents"],[14.6,"Planner weighs gain against verifier cost"],[17.4,"Policy blocks a call outside the harness"],[19.4,"Researcher runs the experiment"],[21.6,"Verifier rejects and names the failing case"],[25.8,"The next claim passes with an exact certificate"],[29.6,"A surprise reopens assumption A1"],[34.8,"Red team attacks · learner proposes follow-ups"],[39.9,"Third certified result"],[43.2,"Open a certificate"],[46.8,"Re-run the check in the browser"],[49.8,"Change one rate by 0.1 % → it fails"],[53.2,"This run took 6 minutes. Real studies run for hours."],[56.4,"Fast-forward: round after round, every claim verified"],[59.4,"A human approves. The scribe writes the paper."],[62.4,"Every number in it is a verified claim"],[65.2,""]];
 function render(t){
   // camera
   const [cx,cy,lz]=(()=>{const k=CAMK.map(a=>[a[0],a[1],a[2],Math.log(a[3])]);const v=track(k,t,eQ);return v})();
@@ -344,13 +376,32 @@ function render(t){
   if(rp){const p=(t-rp[0])/.7;$("ripple").style.display="block";$("ripple").style.transform=`translate(${rp[1]}px,${rp[2]}px) scale(${(0.3+eOut(p)*1.1)*cs})`;$("ripple").style.opacity=1-p;
     $("cursor").querySelector("svg").style.transform=`scale(${1-0.12*Math.sin(Math.PI*Math.min(1,p*2.5))})`}
   else{$("ripple").style.display="none";$("cursor").querySelector("svg").style.transform=""}
-  $("cursor").style.opacity=1-ramp(t,56.6,57.2);
+  $("cursor").style.opacity=1-ramp(t,54.6,55.3);
   // HUD
   let cap=""; for(const [a,s] of CAPS){if(t>=a)cap=s}
   const ci=CAPS.findIndex(c=>c[1]===cap&&t>=c[0]); const since=t-(CAPS.filter(c=>t>=c[0]).pop()||[0])[0];
   $("cap").textContent=cap; $("cap").style.display=cap?"block":"none"; const cp=cl(since/.45);
   $("cap").style.opacity=eOut(cp); $("cap").style.transform=`translateX(-50%) translateY(${(1-eOut(cp))*12}px)`; $("cap").style.filter=`blur(${(1-cp)*6}px)`;
-  const ep=ramp(t,57,58.2); $("end").style.display=ep>0?"grid":"none"; $("end").style.opacity=eIO(ep); $("end").firstElementChild.style.transform=`scale(${.96+.04*eOut(ep)})`;
+  // fast-forward
+  const fp=ramp(t,53.6,54.4)*(1-ramp(t,59,59.6)); $("ff").style.display=fp>0?"block":"none"; $("ff").style.opacity=eIO(fp);
+  if(fp>0){const g=ramp(t,54.6,58.6), sp=eIO(g);
+    $("hh").style.transform=`rotate(${sp*14*30}deg)`; $("mh").style.transform=`rotate(${sp*14*360}deg)`; $("arc").style.strokeDashoffset=326.7*(1-sp);
+    const P=Math.round(50*sp),V=Math.round(11*sp),O=88-P-V; $("k1").textContent=P;$("k2").textContent=V;$("k3").textContent=O;
+    const tiles=$("grid").children; for(let i=0;i<88;i++){const r=ORD.indexOf(i), dec=r< P+V? (r<P*(P+V)/(P+V)?1:1):0; tiles[i].className=""}
+    let pc=0,vc=0; for(let r=0;r<88;r++){const i=ORD[r]; if(r<Math.round(61*sp)){ if(r%61%6===5&&vc<V){tiles[i].className="v";vc++} else if(pc<P){tiles[i].className="p";pc++} else if(vc<V){tiles[i].className="v";vc++} } }
+    $("ff").querySelector(".ffbox").style.transform=`translateY(${(1-eOut(ramp(t,53.6,54.6)))*20}px)`;}
+  // paper
+  const pp=ramp(t,58.8,60.0); $("paperL").style.display=pp>0&&t<66.4?"block":"none"; $("paperL").style.opacity=eIO(pp)*(1-ramp(t,65,65.8));
+  if(pp>0){const W=679,H=960,X0=620,Y0=60;
+    const k=[[58.8,.5,.5,1],[60.6,.5,.5,1],[61.8,.5,.16,1.95],[62.9,.5,.16,1.95],[63.9,.3,.36,2.15],[65.2,.3,.36,2.15]];
+    const [fx,fy,sc]=track(k,t,eQ); const s0=sc*(1+.01*Math.sin(t)); const mix=ramp(t,60.6,61.8)>0?1:0;
+    // keep focus point at screen centre once zooming; before that the page sits at its home position
+    const zx=fx*W, zy=fy*H; const zoomK=eQ(ramp(t,60.6,61.8));
+    const tx=X0+(960-(X0+zx))*zoomK - zx*(s0-1), ty=Y0+(540-(Y0+zy))*zoomK - zy*(s0-1);
+    const rise=1-eOut(pp);
+    $("paper").style.transform=`translate(${tx}px,${ty+rise*220}px) scale(${s0})`;
+    $("appr").style.opacity=eOut(ramp(t,59.2,59.8))*(1-ramp(t,60.8,61.4)); }
+  const ep=ramp(t,65,66.2); $("end").style.display=ep>0?"grid":"none"; $("end").style.opacity=eIO(ep); $("end").firstElementChild.style.transform=`scale(${.96+.04*eOut(ep)})`;
   $("rec").style.opacity=1-ep;
 }
 
